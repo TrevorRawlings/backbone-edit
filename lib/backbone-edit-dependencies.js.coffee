@@ -1,0 +1,10 @@
+#= require underscore.js
+#= require underscore.string.js
+#= require backbone
+#= require ./backbone-relational.js
+#= require ./backbone.marionette.js
+#= require ./chosen.jquery.js
+#= require ./jquery.textarea-expander.js
+#= require ./moment.js
+#= require ./jquery.event.drag-2.0.min.js
+#= require ./slickgrid.js
