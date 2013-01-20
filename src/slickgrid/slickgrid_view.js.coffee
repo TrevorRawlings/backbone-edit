@@ -2,8 +2,11 @@
 if !Backbone.Slickgrid
   Backbone.Slickgrid = {}
 
-#
-Formatters = new Backbone.Slickgrid.Formatter()
+# defined in slickgrid_formatters.js.coffee
+SlickgridFormatters = new Backbone.Slickgrid.Formatter()
+
+# defined in slickgrid_editors.js.coffee
+SlickgridEditors = Backbone.Slickgrid.editors
 
 # Backbone.Slickgrid.View
 # =======================
@@ -48,7 +51,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
 
   gridOptions: ->
     gridOptions =
-      formatterFactory: Formatters
+      formatterFactory: SlickgridFormatters
       autoHeight: @autoHeight
       fullWidthRows: true
       forceFitColumns: true
@@ -83,7 +86,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
     for key, value of schema
       # Create a (shallow) clone to avoid modifcation of shared data structures:
       value = _.clone(value);
-      Backbone.Form.helpers.setSchemaDefaults(value, key)
+      Backbone.Edit.helpers.setSchemaDefaults(value, key)
 
       column = {}
       column.id = key
@@ -93,8 +96,8 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
       column.visible = if _.isUndefined(value.visible) then true else value.visible
       column.canHide = if _.isUndefined(value.canHide) then true else value.canHide
       column.dataType = value.dataType
-      column.editor = Landscape.Helpers.Slickgrid.getEditor(value) if !value.readOnly
-      column.formatter = Formatters.get(value.formatter) if value.formatter
+      column.editor = SlickgridEditors.getEditor(value) if !value.readOnly
+      column.formatter = SlickgridFormatters.get(value.formatter) if value.formatter
       column.sortable = @columnSupportsOrderBy(column)
 
       columns.push(column)
@@ -355,20 +358,18 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
       @grid.destroy()
       @grid = null
 
-  # -----------------------------------
-  # Context menu
+  # ---------------------------------------------------------------------
+  # --- Context menu
+  # ---------------------------------------------------------------------
+  # Pop up menu that is displayed when thr user clicks on the column header
 
   on_ContextMenu: (e, args) ->
-    e.preventDefault();
-    #e.stopPropagation()
+    if !_.isUndefined(Backbone.Slickgrid.SlickgridColumnPicker)
+      e.preventDefault();
+      #e.stopPropagation()
 
-    # @closeContextMenu() if @contextMenu
-    contextMenu = new Landscape.Views.SlickgridColumnPicker({ grid: this })
-    contextMenu.openMenu(e)
-
-  #  closeContextMenu: ->
-  #    @contextMenu.closeMenu() if .@contextMenu.isActive
-  #    @contextMenu = null
+      contextMenu = new Backbone.Slickgrid.SlickgridColumnPicker({ grid: this })
+      contextMenu.openMenu(e)
 
 
   # ---------------------------------------------------------------------
@@ -377,7 +378,10 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
   # buttons that are displayed above the slickgrid
 
   newButtonsView: ->
-    return new Landscape.Views.SlickgridButtons({grid: this})
+    if !_.isUndefined(Backbone.Slickgrid.SlickgridButtons)
+      return new Backbone.Slickgrid.SlickgridButtons({grid: this})
+    else
+      return null
 
   # ---------------------------------------------------------------------
 

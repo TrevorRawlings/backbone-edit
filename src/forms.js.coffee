@@ -11,7 +11,10 @@ if !Backbone.Edit
 # HELPERS
 # ==================================================================================================
 
-helpers = {}
+if !Backbone.Edit.helpers
+  Backbone.Edit.helpers = {}
+
+helpers = Backbone.Edit.helpers
 
 # **
 # * This function is used to transform the key from a schema into the title used in a label.
@@ -314,7 +317,7 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
     if (!options)
       options = this.optionsForField(key);
 
-    field = new Field(options);
+    field = new Backbone.Edit.Field(options);
     @fields[key] = field;
     return field
 
