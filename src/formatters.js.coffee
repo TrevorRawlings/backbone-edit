@@ -6,6 +6,7 @@ if !Backbone.Edit.formatters
 
 formatters = Backbone.Edit.formatters
 
+# Supported formatters  (dataType | Formatter name)
 formatters.dataTypes =
   "Date"    :    "dateFormater"
   "Model" :      "modelFormater"
@@ -16,6 +17,24 @@ formatters.find_by_data_type = (type) ->
     return formatters[formatterName]
   else
     return null
+
+
+formatters.defaultFormater = (value) ->
+  if _.isNull(value) or _.isUndefined(value)
+    return ""
+
+  else if value instanceof Backbone.Model
+    return formatters.modelFormater(value)
+
+  else if value instanceof Backbone.Collection
+    return formatters.collectionFormater(value)
+
+  else if _.isDate( value )
+    return formatters.dateFormater(value)
+
+  else
+    return _.string.escapeHTML( value.toString() )
+
 
 formatters.dateFormater = (value) ->
   if _.isDate( value )
