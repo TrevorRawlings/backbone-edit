@@ -1,5 +1,7 @@
 editors = Backbone.Edit.editors
 
+
+
 # Backbone.Edit.editors.Slickgrid
 # ---------------------------------
 #
@@ -240,7 +242,7 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     column.editor = null
 
     if type == "index"
-      column.formatter = Formatters.rowIndexFormater
+      column.formatter = Backbone.Slickgrid.formatter.rowIndexFormater
     else
       column.formatter = null
 

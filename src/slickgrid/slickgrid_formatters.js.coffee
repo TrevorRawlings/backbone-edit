@@ -7,7 +7,7 @@ if !Backbone.Slickgrid
   Backbone.Slickgrid = {}
 
 
-class Backbone.Slickgrid.Formatter
+class Backbone.Slickgrid.FormatterBase
 
   # Supported formatters  (dataType | Formatter name)
   formatters:

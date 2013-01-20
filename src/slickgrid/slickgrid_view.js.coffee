@@ -2,11 +2,13 @@
 if !Backbone.Slickgrid
   Backbone.Slickgrid = {}
 
-# defined in slickgrid_formatters.js.coffee
-SlickgridFormatters = new Backbone.Slickgrid.Formatter()
 
 # defined in slickgrid_editors.js.coffee
 SlickgridEditors = Backbone.Slickgrid.editors
+
+if !Backbone.Slickgrid.formatter
+  Backbone.Slickgrid.formatter = new Backbone.Slickgrid.FormatterBase()
+
 
 # Backbone.Slickgrid.View
 # =======================
@@ -51,7 +53,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
 
   gridOptions: ->
     gridOptions =
-      formatterFactory: SlickgridFormatters
+      formatterFactory: Backbone.Slickgrid.formatter
       autoHeight: @autoHeight
       fullWidthRows: true
       forceFitColumns: true
@@ -97,7 +99,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
       column.canHide = if _.isUndefined(value.canHide) then true else value.canHide
       column.dataType = value.dataType
       column.editor = SlickgridEditors.getEditor(value) if !value.readOnly
-      column.formatter = SlickgridFormatters.get(value.formatter) if value.formatter
+      column.formatter = Backbone.Slickgrid.formatter.get(value.formatter) if value.formatter
       column.sortable = @columnSupportsOrderBy(column)
 
       columns.push(column)

@@ -59,9 +59,9 @@ formatters.modelFormater = ( value ) ->
 
 formatters.collectionFormater = (value) ->
   if value instanceof Backbone.Collection
-    # Call _formatModel() for the first 10 models in the collection
+    # Call modelFormater() for the first 10 models in the collection
     # Limiting to the first first 10 models in case its a massive collection with 100's of items
-    values = (@_formatModel(model) for model in value.first(10) )
+    values = (formatters.modelFormater(model) for model in value.first(10) )
     values.push("...") if value.length > 10
     return values.join(", ")
 
