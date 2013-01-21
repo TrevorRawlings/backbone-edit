@@ -88,10 +88,11 @@ helpers.setSchemaDefaults = (schema, key) ->
  # Set schema defaults
   if !schema.type
     schema.type = switch (schema.dataType)
-                    when 'Date'    then 'Date'
-                    when 'Model'   then 'Select'
-                    when 'Number'  then 'Number'
-                    when 'Boolean' then 'Checkbox'
+                    when 'Date'     then 'Date'
+                    when 'DateTime' then 'DateTime'
+                    when 'Model'    then 'Select'
+                    when 'Number'   then 'Number'
+                    when 'Boolean'  then 'Checkbox'
                     else 'Text'
 
   if !schema.title
@@ -619,7 +620,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
 
   logValue: ->
     return if !console or !console.log
-    console.log(@getValue())
+    # console.log(@getValue())
 
   _setEditor: (value) ->
     @_closeEditor()

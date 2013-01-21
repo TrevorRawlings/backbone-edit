@@ -1,12 +1,12 @@
 editors = Backbone.Edit.editors
+converters = Backbone.Edit.converters
 
-class editors.DateEditor extends editors.Base
+# This is a base class for the Date and the DateTime editor
+class editors.DateTypeBase extends editors.Base
   tagName: 'input'
   className: 'bbf-date'
 
   events: {  'change': 'triggerChanged' }
-
-
 
   initialize: (options) ->
     super
@@ -37,28 +37,12 @@ class editors.DateEditor extends editors.Base
     @setValue(this.value)
     return this
 
-  # Handling of dates
-  # -----------------
-  #
-  # All dates will be sent to/from the server as ISO-8601 (YYYY-MM-DDThh:mm:ss.sTZD) .. which is defined here: http://www.w3.org/TR/NOTE-datetime
-  #
-  # However native browser support is limited.  so we need to use
 
-  getValue: ->
-    date = if @pickerType() == "jquery" then @$el.datepicker('getDate') else @$el.mobiscroll('getDate')
-
-    # Datepicker returns midnight on the selected date for the local timezone.
-    if (date == null)
-      return null
-    else
-      return moment( date ).utc().format("YYYY-MM-DD")
+  getValueAsDate: ->
+    return if @pickerType() == "jquery" then @$el.datepicker('getDate') else @$el.mobiscroll('getDate')
 
 
-  setValue: (value) ->
-    if (value && !_.isDate(value))  # Cast to Date
-      value = new Date(value)
-      value.setMinutes(value.getMinutes() + value.getTimezoneOffset());
-
+  setValueAsDate: (value) ->
     if @pickerType() == "jquery"
       @$el.datepicker('setDate', value)
     else
@@ -77,7 +61,38 @@ class editors.DateEditor extends editors.Base
       else
         @$el.removeClass('mobiscroll')
 
+
+class editors.DateEditor extends editors.DateTypeBase
+
+  getValue: ->
+    date = @getValueAsDate()
+    return converters.date.toServerString(date)
+
+
+  setValue: (value) ->
+    if (value && !_.isDate(value))  # Cast to Date
+      value = converters.date.fromServerString(value)
+
+    @setValueAsDate(value)
+
+
+class editors.DateTimeEditor extends editors.DateTypeBase
+
+
+  getValue: ->
+    date = @getValueAsDate()
+    return converters.dateTime.toServerString(date)
+
+
+  setValue: (value) ->
+    if (value && !_.isDate(value))  # Cast to Date
+      value = converters.dateTime.fromServerString(value)
+
+    @setValueAsDate(value)
+
+
 editors["Date"] = editors.DateEditor
+editors["DateTime"] = editors.DateTimeEditor
 
 
 

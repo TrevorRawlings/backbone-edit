@@ -12,6 +12,7 @@ class Backbone.Slickgrid.FormatterBase
   # Supported formatters  (dataType | Formatter name)
   formatters:
     "Date"    :    "dateFormater"
+    "DateTime"    :    "dateTimeFormater"
     "Model" :      "modelFormater"
     "Collection" : "collectionFormater"
 
@@ -43,6 +44,11 @@ class Backbone.Slickgrid.FormatterBase
   # as a result the @ sign doesn't work
   dateFormater: (row,cell,value,col,data) ->
     Backbone.Edit.formatters.dateFormater( data.get(col.field) )
+
+  # Slick grid calls this method with the 'this' variable set to window
+  # as a result the @ sign doesn't work
+  dateTimeFormater: (row,cell,value,col,data) ->
+    Backbone.Edit.formatters.dateTimeFormater( data.get(col.field) )
 
 
   # Slick grid calls this method with the 'this' variable set to window

@@ -5,11 +5,13 @@ if !Backbone.Edit.formatters
   Backbone.Edit.formatters = {}
 
 formatters = Backbone.Edit.formatters
+converters = Backbone.Edit.converters
 
 # Supported formatters  (dataType | Formatter name)
 formatters.dataTypes =
-  "Date"    :    "dateFormater"
-  "Model" :      "modelFormater"
+  "Date"       : "dateFormater"
+  "DateTime"   : "dateTimeFormater"
+  "Model"      : "modelFormater"
   "Collection" : "collectionFormater"
 
 formatters.find_by_data_type = (type) ->
@@ -38,13 +40,26 @@ formatters.defaultFormater = (value) ->
 
 formatters.dateFormater = (value) ->
   if _.isDate( value )
-    return moment( value ).utc().format("DD-MM-YYYY")
+    return moment( value ).format("DD-MM-YYYY")
   else if _.isString( value )
-    return moment( value, "YYYY-MM-DDTHH:mm:ss z" ).utc().format("DD-MM-YYYY")
+    date = converters.date.fromServerString(value)
+    return moment( date ).format("DD-MM-YYYY")
   else if _.isNull(value) or _.isUndefined(value)
     return ""
   else
     return "?"
+
+formatters.dateTimeFormater = (value) ->
+  if _.isDate( value )
+    return moment( value ).format("DD-MM-YYYY")
+  else if _.isString( value )
+    date = converters.dateTime.fromServerString(value)
+    return moment( date ).format("DD-MM-YYYY")
+  else if _.isNull(value) or _.isUndefined(value)
+    return ""
+  else
+    return "?"
+
 
 formatters.modelFormater = ( value ) ->
   if value instanceof Backbone.Model
@@ -71,4 +86,10 @@ formatters.collectionFormater = (value) ->
   else
     return "?"
 
+# Add a format method to classes derived from Backbone.Model
+class Backbone.Edit.FormatterMixin extends Backbone.Edit.Mixin
 
+  format: (attr) ->
+    itemSchema = @schema[attr]
+    formatter = formatters.find_by_data_type(itemSchema.dataType)
+    return formatter(@get(attr))
