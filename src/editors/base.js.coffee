@@ -49,6 +49,9 @@ class editors.Base extends Backbone.View
     editable = if _.isUndefined(this.options.editable) then true else this.options.editable
     this.setEditable(editable)
 
+  isInModal: ->
+    @$el.closest('#modal').length >= 1
+
   getValue: ->
     throw 'Not implemented. Extend and override this method.'
 
