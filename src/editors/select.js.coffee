@@ -32,6 +32,13 @@ class editors.Select extends editors.Base
       this.$el.chosen(options)
 
   javascriptEditor: ->
+    # On mobile devices the chosen dropdown doesn't really work - and most mobile browsers
+    # have touch optimised interfaces for selecting from a dropdown
+    return false if !categorizr.isDesktop
+
+    # In a modal the chosen dropdown effects the sizing of the modal and it all looks a bit average
+    return false if @isInModal()
+
     return @schema.javascriptEditor == true or _.isUndefined(@schema.javascriptEditor)
 
   allow_deselect: ->
