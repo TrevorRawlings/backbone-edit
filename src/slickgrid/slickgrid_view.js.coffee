@@ -42,9 +42,9 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
 
   initialize: (options = {}) ->
     _.bindAll(@, "on_ContextMenu") #, "closeContextMenu"
-    @setCollection(@collection, { force: true })
     @allColumns = @getColumns()
     @autoHeight = @_autoHeight(@getLength())
+    @setCollection(@collection, { force: true })
 
   initialEvents: ->
     # Initial events is called by the Marionette.View constructor and by default binds
@@ -131,12 +131,14 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
       if column.visible != true
         column.visible = true;
         @_updateVisible()
+        @updateCollectionBindings()
 
   hideColumn: (key) ->
     if (column = @_findColumn(key)) and (@getVisibleColumns().length > 1) and (column.canHide)
       if column.visible != false
         column.visible = false;
         @_updateVisible()
+        @updateCollectionBindings()
 
   columnIsVisible: (key) ->
     if (column = @_findColumn(key))
@@ -162,14 +164,23 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
 
   setupCollectionBindings:  ->
     @bindToCollection("add remove reset", @on_CollectionChanged, @);
-    @bindToCollection("change", @on_ModelChanged, @);
 
+    changes = ("change:#{column.id}" for column in @getVisibleColumns() when column.isSpecialColumn != true)
+    if changes.length > 0
+      @bindToCollection(changes.join(" "), @on_ModelChanged, @);
+
+
+  unbindFromCollection: ->
+    if @collectionBindings
+      @unbindFrom(binding) for binding in @collectionBindings
+
+  updateCollectionBindings: ->
+    @unbindFromCollection()
+    @setupCollectionBindings()
 
   setCollection: (value, options) ->
     if @collection != value or (options and options.force)
-      if @collectionBindings
-        @unbindFrom(binding) for binding in @collectionBindings
-
+      @unbindFromCollection()
       @collection = value
       @setupCollectionBindings()
 
@@ -277,7 +288,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
     if showGrid == null
       @notifyCollectionChanged()
     else
-      if !showGrid and @grid
+      if !showGrid
         @removeGrid()
         @on_collectionEmpty() if @on_collectionEmpty
       else if showGrid and !@grid
@@ -352,13 +363,19 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.ItemView
     @grid.onHeaderContextMenu.subscribe(@on_ContextMenu);
     @grid.autosizeColumns()
     @grid.parentView = this
+    @trigger("grid:created")
     return @grid
+
 
 
   removeGrid: ->
     if @grid
       @grid.destroy()
       @grid = null
+      @trigger("grid:removed")
+
+  hasSlickgrid: ->
+    return (!_.isNull(@grid) and !_.isUndefined(@grid))
 
   # ---------------------------------------------------------------------
   # --- Context menu

@@ -42,6 +42,7 @@ helpers.createTemplate = (str, context) ->
   _interpolateBackup = _.templateSettings.interpolate;
 
   # Set custom template settings
+  # By default underscore uses erb style templates - switch to  Mustache.js style templating
   _.templateSettings.interpolate = /\{\{(.+?)\}\}/g;
 
   template = _.template(str);
@@ -159,6 +160,27 @@ Backbone.Edit.Mixin.add_to = (object) ->
   for key, value of this.prototype when key not in ["constructor"]
     # Assign properties to the prototype
     object.prototype[key] = value
+
+
+class Backbone.Edit.FindElementMixin extends Backbone.Edit.Mixin
+
+  # Searches the tree of html nodes below the view item. An error is raised if the number found is not equal to 1
+  # http://api.jquery.com/find/
+  findElement: (search) ->
+    elements = @$(search)
+    if elements.length != 1
+      throw "element #{search} found #{elements.length} times (expected 1 instance)"
+    else
+      return $(elements[0])
+
+  # Searches on the direct children of the current node. An error is raised if the number found is not equal to 1
+  # http://api.jquery.com/children/
+  findChildElement: (search) ->
+    elements = @$el.children(search)
+    if elements.length != 1
+      throw "element #{search} found #{elements.length} times (expected 1 instance)"
+    else
+      return $(elements[0])
 
 
 # ==================================================================================================
@@ -372,6 +394,7 @@ class Backbone.Edit.Form extends Backbone.Marionette.ItemView
 # ==================================================================================================
 
 class Backbone.Edit.Field extends Backbone.Marionette.View
+  Backbone.Edit.FindElementMixin.add_to(@)
 
   # **
   # * @param {Object}  Options
@@ -386,6 +409,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   initialize: (options) ->
     @form = options.form
     @key = options.key;
+    @errors_key = options.errors_key || @key;
     @value = options.value;
     @model = options.model;
 
@@ -415,27 +439,23 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
       key: @key,
       schema: @schema,
       idPrefix: this.options.idPrefix,
-      id: this.generateId()
+      id: @generateId()
 
 
     # Decide on data delivery type to pass to editors
     if (@model)
-      options.model = this.model;
-      if (_.isFunction(this.model.canEdit))
-        options.editable = this.model.canEdit()
-
+      options.model = @model;
+      options.editable = @model.canEdit() if _.isFunction(@model.canEdit)
     else
-      options.value = this.value
+      options.value = @value
 
-    # Decide on the editor to use
-    editor = helpers.createEditor(@schema.type, options)
-    @_setEditor(editor)
+    @_setEditor(helpers.createEditor(@schema.type, options))
 
     #Create the element
     field_options =
       key:    @key
       title:  @schema.title
-      id:     editor.id
+      id:     @editor.id
       type:   @schema.type
       editor: '<span class="bbf-placeholder-editor"></span>'
       help:   '<span class="bbf-placeholder-help"></span>'
@@ -455,7 +475,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
       $editorPlaceholder.parent().addClass('input-append');
       $editorPlaceholder.parent().append(append)
 
-    $editorPlaceholder.replaceWith(editor.render().el)
+    $editorPlaceholder.replaceWith(@editor.render().el)
 
 
     # Set help text
@@ -463,13 +483,9 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
     if @$help
       @$help.empty();
 
-    # Add custom CSS class names
-    if (@schema.fieldClass)
-      $field.addClass(@schema.fieldClass)
 
-    # Add custom attributes
-    if (@schema.fieldAttrs)
-      $field.attr(@schema.fieldAttrs)
+    $field.addClass(@schema.fieldClass) if (@schema.fieldClass)  # Add custom CSS class names
+    $field.attr(@schema.fieldAttrs) if (@schema.fieldAttrs)  # Add custom attributes
 
     @setElement($field);
     @editor.onShow() if @shown && @editor && @editor.onShow
@@ -537,6 +553,10 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
     else
       return _.string.escapeHTML(errors.toString())
 
+  # Limit what errors are shown to the user
+  filter_errors: (itemErrors) ->
+    return itemErrors
+
   # **
   # * If saving a model fails the validation errors in the http response will be added to a collection on the
   # * model.  The method reads the errors and updates the form with the new values
@@ -544,14 +564,14 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # * @param {String} errMsg
   # *
   on_serverSideValidation: ->
-    itemErrors = @model.serverErrors[@key]
+    itemErrors = @filter_errors(@model.serverErrors[@errors_key])
     if (itemErrors)
       @setError(@formatErrors(itemErrors))
     else
       @clearError()
 
   on_clientSideValidation: ->
-    itemErrors = @model.clientErrors[@key]
+    itemErrors = @filter_errors(@model.clientErrors[@errors_key])
     if (itemErrors)
       @setError(@formatErrors(itemErrors))
     else
@@ -561,7 +581,12 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
     @setValue(@model.get(@key))
 
   on_canEditChanged: ->
-    @editor.setEditable(@model.canEdit())
+    @setEditable(@model.canEdit())
+
+  setEditable: (canEdit) ->
+    if @editor
+      @editor.setEditable(canEdit)
+
 
   # **
   # * Update the model with the current value

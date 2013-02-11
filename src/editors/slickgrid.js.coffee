@@ -20,7 +20,7 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
   enableIndex: false
 
   initialize: (options = {}) ->
-    _.bindAll(@, 'on_addNewRow', 'on_Click', 'onBeforeMoveRows', 'onMoveRows', '_delayed_focus_click')
+    _.bindAll(@, 'on_addNewRow', 'on_Click', 'onBeforeMoveRows', 'onMoveRows', '_delayed_focus_click', 'on_document_event', 'on_BeforeEditCell', 'on_BeforeCellEditorDestroy')
     throw "options.model is required" if @enableMove and !options.model
 
     if _.isUndefined(options.autoHeight)
@@ -37,7 +37,6 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
 
     @form = options.form
     @editorSchema = options.schema || {}
-    @editable = if (@options.editable != undefined) then @options.editable else false
 
     if @enableAddRow
       # getItem() needs to return a new instance of a backbone model but we can't do 'new @collection.model()'
@@ -48,6 +47,9 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     @$el.addClass(@editorSchema.editorClass)  if @editorSchema.editorClass
     @$el.attr(@editorSchema.editorAttrs) if @editorSchema.editorAttrs
     @$el.attr("placeholder", @editorSchema.placeholder) if (@editorSchema.placeholder)
+
+    editable = if _.isUndefined(@options.editable) then false else @options.editable
+    @setEditable(editable)
     super
 
   # =====================================================================================
@@ -60,7 +62,6 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
   setValue: (value) ->
     @setCollection(value)
 
-
   setEditable: (value) ->
     if @editable != value
       @editable = value
@@ -68,11 +69,8 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
         @removeGrid()
         @on_CollectionChanged()
 
-
-
   _delayed_focus_click: ->
     if @grid
-
       columns = @grid.getColumns()
       selectableColumn = _.find(columns, (item) ->  item.editor )
       index = _.indexOf( columns, selectableColumn )
@@ -81,12 +79,9 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
       if cells.length >=  index
         $(cells[index]).click()
 
-
-
   delayed_focus: ->
     if @grid
       window.setTimeout( @_delayed_focus_click,  0);
-
 
   focus: ->
     @$el.focus()
@@ -97,9 +92,9 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
   commit: ->
     # Not required
 
-    # =====================================================================================
-    # Overrides for methods in Backbone.Slickgrid.View
-    #
+  # =====================================================================================
+  # Overrides for methods in Backbone.Slickgrid.View
+  #
   gridOptions: ->
     options = super
     options.editable = @editable
@@ -151,6 +146,9 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     if @enableMove and @editable
       grid.registerPlugin( @newMoveManager() )
 
+    grid.onBeforeEditCell.subscribe( @on_BeforeEditCell )
+    grid.onBeforeCellEditorDestroy.subscribe( @on_BeforeCellEditorDestroy )
+
 
     grid.setSelectionModel(new Slick.RowSelectionModel({selectActiveRow: true, multiSelect: false}));
 
@@ -166,6 +164,60 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
 
     # using bindToCollection() so that references are automatically released if the collection changes
     @bindToCollection("serverErrorsChanged clientErrorsChanged", @on_ModelChanged, @)
+
+
+  # -----------------------------------------------------------------------
+
+  on_BeforeEditCell: ->
+    if !@listening_to_document
+      $(document).on('click', @on_document_event)
+      $(document).on('focusin', @on_document_event)
+      @listening_to_document = true
+
+  on_BeforeCellEditorDestroy: ->
+    @unbind_from_document()
+
+
+  on_document_event: (e) ->
+    #throw "!@listening_to_document" if !@listening_to_document
+    return if !@listening_to_document
+
+    isActive = @grid.getEditorLock().isActive()
+    @consoleLog("on_document_event: #{e.type}, isActive = #{isActive}")
+
+    if @grid.DetachedEditor
+      @consoleLog("on_document_event: @grid.DetachedEditor = true - calling handle_document_event")
+      # If the detached editor if another slickgird then it will have also
+      # subscribed to $document click + focus events - but we we want the child
+      # instance to re-act to the event first.  Once handle_document_event()
+      # returns we can recheck if @grid has a DetachedEditor property.
+      @grid.DetachedEditor.handle_document_event(e)
+
+    if @grid.DetachedEditor
+      @consoleLog("on_document_event: @grid.DetachedEditor still true - returning")
+      return
+
+    if $.contains(this.el, e.target)
+      @consoleLog("on_document_event: this.el contains e.target - returning")
+      return "contains"
+
+    if @grid.getEditorLock().isActive()
+      @consoleLog("on_document_event: @grid.getEditorLock().isActive() - calling commitCurrentEdit()")
+      @grid.getEditorLock().commitCurrentEdit();
+
+    if isActive
+      @consoleLog("on_document_event: calling @grid.resetActiveCell()")
+      @grid.resetActiveCell()
+
+  consoleLog: (message) ->
+    console.log(message)
+
+
+
+  unbind_from_document: ->
+    $(document).off('click', @on_document_event)
+    $(document).off('focusin', @on_document_event)
+    @listening_to_document = false
 
 
   # -----------------------------------------------------------------------
@@ -249,12 +301,15 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     if type == "move"
       column.width = 30
       column.behavior = "selectAndMove"
+    else if type == "delete"
+      column.width = 30
     else
       column.width = 40
 
     column.selectable = true
     column.resizable = false
     column.cssClass = "cell-#{type}"
+    column.isSpecialColumn = true
 
     return column
 

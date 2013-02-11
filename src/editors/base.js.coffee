@@ -32,22 +32,14 @@ class editors.Base extends Backbone.View
     @form = options.form;
     @schema = options.schema || {};
 
-    if (@key)
-      @$el.attr('name', @key)
 
-    # Add custom CSS class names
-    if (@schema.editorClass)
-      @$el.addClass(@schema.editorClass)
-
-    # Add custom attributes
-    if (@schema.editorAttrs)
-      @$el.attr(@schema.editorAttrs)
-
-    if (@schema.placeholder)
-      @$el.attr("placeholder", this.schema.placeholder)
+    @$el.attr('name', @key) if (@key)
+    @$el.addClass(@schema.editorClass) if (@schema.editorClass)
+    @$el.attr(@schema.editorAttrs) if (@schema.editorAttrs)
+    @$el.attr("placeholder", this.schema.placeholder) if (@schema.placeholder)
 
     editable = if _.isUndefined(this.options.editable) then true else this.options.editable
-    this.setEditable(editable)
+    @setEditable(editable)
 
   isInModal: ->
     @$el.closest('#modal').length >= 1

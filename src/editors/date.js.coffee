@@ -44,7 +44,12 @@ class editors.DateTypeBase extends editors.Base
 
   setValueAsDate: (value) ->
     if @pickerType() == "jquery"
-      @$el.datepicker('setDate', value)
+      # Work around for ie: Only do a set if the new value is different to the current
+      current = @$el.datepicker('getDate')
+      current_in_ms = if current then current.getTime() else null
+      value_in_ms = if value then value.getTime() else null
+      if current_in_ms != value_in_ms
+        @$el.datepicker('setDate', value)
     else
       if value == null or value == ""
         @$el.val('');

@@ -17,9 +17,9 @@ editors = Backbone.Slickgrid.editors
 
 editors.getEditor_default = (schema) ->
   if ((schema.type == 'Select') or (schema.type == 'GroupedSelect'))
-    return Landscape.Helpers.Slickgrid.SelectEditor
+    return editors.SelectEditor
   else
-    return Landscape.Helpers.Slickgrid.DefaultEditor
+    return editors.DefaultEditor
 
 # Backbone.Slickgrid.editors.getEditor()
 # ======================================
@@ -219,10 +219,16 @@ class editors.SelectEditor extends editors.InlineEditor
 class editors.DetachedEditor extends editors.Base
 
   constructor: (args) ->
-    _.bindAll(this, '_setup_click', '_document_click', '_handleKeyDown')
+    _.bindAll(this, '_setup_click',  '_handleKeyDown') #'_document_click',
     super
     @updateValue()
+
+    throw "already has a DetachedEditor" if !_.isUndefined(@grid.DetachedEditor)
+    @grid.DetachedEditor = this  # this need to be set before we call focus()
     @wrapper.focus()
+
+
+
 
 
   updateValue: ->
@@ -246,11 +252,8 @@ class editors.DetachedEditor extends editors.Base
 
     $(@args.container).css("border-color", "transparent silver silver transparent")
     $(@args.container).css("border-style", "solid dotted solid solid")
-    #$(@args.container).css("background-color", "#ECECEC")
     $(@args.container).css("background-color", "#FCF8E3")
     $(@args.container).css("color", "#C09853")
-    #
-
 
     wrapper = @getWrapper()
     wrapper.append(@editor.render().el)
@@ -278,13 +281,26 @@ class editors.DetachedEditor extends editors.Base
     e.stopPropagation();
 
   _setup_click: ->
-    if @wrapper
-      $("body").click(@_document_click)
+    @ready_for_click = true
+    #    if @wrapper
+    #
+    #      $("body").click(@_document_click)
 
-  _document_click: (e) ->
-    if @wrapper
+  #  _document_click: (e) ->
+  #    if @wrapper
+  #      @cancel();
+  #    $(@).unbind(e)
+
+  # this event may or maynot be within @wrapper
+  # see on_document_event() in Backbone.Edit.editors.Slickgrid
+  handle_document_event: (e) ->
+    return if !@wrapper or !@ready_for_click
+
+    if $.contains(@wrapper[0], e.target) or @wrapper[0] == e.target
+      return "contains"
+    else
+      @focus_lost = true
       @cancel();
-    $(@).unbind(e)
 
   _handleKeyDown: (e) ->
     if (e.which == $.ui.keyCode.ENTER && e.ctrlKey)
@@ -315,6 +331,12 @@ class editors.DetachedEditor extends editors.Base
     if @wrapper
       @wrapper.remove()
       @wrapper = null
+
+    throw "DetachedEditor not defined" if _.isUndefined(@grid.DetachedEditor)
+    delete @grid.DetachedEditor
+
+
+
 
   # /*********** OPTIONAL METHODS***********/
 
@@ -352,7 +374,12 @@ class editors.DetachedEditor extends editors.Base
       @wrapper.position(args)
 
   cancel: ->
-    @args.cancelChanges();
+    if @focus_lost
+      # User has clicked outside the detached editor.  We don't want to steal the focus back to the
+      # parent grid so just cancel the current edit session
+      @grid.getEditorLock().cancelCurrentEdit()
+    else
+      @args.cancelChanges();
 
 
 
@@ -386,5 +413,15 @@ class editors.DetachedSlickgrid extends editors.DetachedEditor
     options.newEditorLock = true
     return options
 
+  # see on_document_event() in Backbone.Edit.editors.Slickgrid for an explination of this function
+  handle_document_event: (e) ->
+
+    if @editor
+      # IE generates an unwanted focusin event when clearing the text selection.  Observed on IE9 but I
+      # assume it effects all versions of IE
+      return if @editor.grid and @editor.grid.clearingTextSelection
+
+      @editor.on_document_event(e)
+    super
 
 
