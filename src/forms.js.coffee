@@ -4,17 +4,39 @@
 #
 #
 
-if !Backbone.Edit
-  Backbone.Edit = {}
+Backbone.Edit = {} if !Backbone.Edit
+
+# ==================================================================================================
+# Enum
+# ==================================================================================================
+
+Backbone.Edit.enum = {} if !Backbone.Edit.options
+
+Backbone.Edit.enum.DefaultValue = { backbone_edit_enum: "DefaultValue" }   # use the default value as the placeholder
 
 # ==================================================================================================
 # HELPERS
 # ==================================================================================================
 
-if !Backbone.Edit.helpers
-  Backbone.Edit.helpers = {}
+Backbone.Edit.helpers = {} if !Backbone.Edit.helpers
 
 helpers = Backbone.Edit.helpers
+
+
+helpers.dom = {} if !helpers.dom
+
+helpers.dom.element_equal_or_contains = (element, target) ->
+  throw "arg should be a dom element" if !_.isElement(element) or !_.isElement(target)
+
+  return element == target or $.contains(element, target)
+
+
+helpers.getObjectByName = (name) ->
+  return name if _.isFunction(name) or _.isObject(name)
+  object = Backbone.Relational.store.getObjectByName(name)
+  throw "failed to find object #{name}" if !object
+  return object
+
 
 # **
 # * This function is used to transform the key from a schema into the title used in a label.
@@ -94,6 +116,8 @@ helpers.setSchemaDefaults = (schema, key) ->
                     when 'Model'    then 'Select'
                     when 'Number'   then 'Number'
                     when 'Boolean'  then 'Checkbox'
+                    when 'Decimal'  then 'Text'
+                    when 'Currency' then 'Currency'
                     else 'Text'
 
   if !schema.title
@@ -111,16 +135,27 @@ helpers.setSchemaDefaults = (schema, key) ->
   if _.isUndefined(schema.readOnly)
     schema.readOnly = false
 
+  if !schema.field
+    schema.field = Backbone.Edit.Field
+
 
 # Returns a new object that is the result of merging base and extend
-helpers.mergeSchema = (base, extend) ->
+helpers.mergeSchema = (base, extend...) ->
   schema = {}
 
-  for key in _.union(_.keys(base), _.keys(extend))
-    b = base[key] || {}
-    e = extend[key] || {}
-    schema[key] = _.extend({}, b, e)
+  # keys will be an array of arrays:
+  # [['a', 'b'], ['a'], ['a', 'c']]
+  keys = [_.keys(base)]
+  keys.push(_.keys(e)) for e in extend
 
+  for key in _.union.apply(_, keys)
+    schema_row = [{}, (base[key] || {})]
+    for e in extend
+      schema_row.push( e[key] || {}  )
+
+    # schema_row will be an array of objects:
+    # [{}, {a: 1}, {b: 2}, {a: '3', c:[67] }]
+    schema[key] = _.extend.apply(_, schema_row)
   return schema
 
 
@@ -137,7 +172,10 @@ helpers.mergeSchema = (base, extend) ->
 helpers.createEditor = (schemaType, options) ->
 
   if (_.isString(schemaType))
-    ConstructorFn = Backbone.Edit.editors[schemaType]
+    if _.isFunction(Backbone.Edit.editors[schemaType])
+      ConstructorFn = Backbone.Edit.editors[schemaType]
+    else
+      throw "#{schemaType} is not a Backbone.Edit editor"
   else
     ConstructorFn = schemaType
 
@@ -147,40 +185,7 @@ helpers.createEditor = (schemaType, options) ->
 Backbone.Edit.helpers = helpers
 
 
-# A simple mixin implementation.
-#
-# Some more complex alteratives:
-# * http://arcturo.github.com/library/coffeescript/03_classes.html
-# * https://gist.github.com/993415
-# * https://github.com/kmalakoff/mixin
 
-class Backbone.Edit.Mixin
-
-Backbone.Edit.Mixin.add_to = (object) ->
-  for key, value of this.prototype when key not in ["constructor"]
-    # Assign properties to the prototype
-    object.prototype[key] = value
-
-
-class Backbone.Edit.FindElementMixin extends Backbone.Edit.Mixin
-
-  # Searches the tree of html nodes below the view item. An error is raised if the number found is not equal to 1
-  # http://api.jquery.com/find/
-  findElement: (search) ->
-    elements = @$(search)
-    if elements.length != 1
-      throw "element #{search} found #{elements.length} times (expected 1 instance)"
-    else
-      return $(elements[0])
-
-  # Searches on the direct children of the current node. An error is raised if the number found is not equal to 1
-  # http://api.jquery.com/children/
-  findChildElement: (search) ->
-    elements = @$el.children(search)
-    if elements.length != 1
-      throw "element #{search} found #{elements.length} times (expected 1 instance)"
-    else
-      return $(elements[0])
 
 
 # ==================================================================================================
@@ -216,7 +221,11 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
     # Handle other options
     @model = options.model;
     @data = options.data;
-    @fieldsToRender = options.fields || _.keys(@schema);
+
+    @fieldsToRender = @fieldsToRender || @options.fields #|| _.keys(@schema);
+    throw "expected an array" if @fieldsToRender and !_.isArray(@fieldsToRender)
+
+
     @fieldsets = options.fieldsets;
     @templateName = options.template || 'form';
 
@@ -285,29 +294,29 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
     for key in fieldsToRender
       throw "key is undefined" if (_.isUndefined(key) || _.isNull(key))
       options = @optionsForField(key)
-      field = @addField(key)
+      field = @addField(key, options)
 
       # Render the fields with editors, apart from Hidden fields
-      if (options.schema.type == 'Hidden')
-        field.editor = helpers.createEditor('Hidden', options)
-      else
-        $container.append(field.render().el)
-        if (@_fieldsShown)
-          field.onShow()
+      #      if (options.schema.type == 'Hidden')
+      #        field.editor = helpers.createEditor('Hidden', options)
+      #      else
+      $container.append(field.render().el)
+      if (@_fieldsShown)
+        field.show()
 
   showFields: ->
     @_fieldsShown = true
-    @fields[key].onShow() for key of @fields
+    @fields[key].show() for key of @fields
 
 
   setFocus: (field) ->
     throw "expected field to be a string" if !_.isString(field)
     throw "field #{field} not found"  if !@fields[field]
 
-    @fields[field].editor.focus()
+    @fields[field].setFocus()
 
 
-  optionsForField: (key) ->
+  optionsForFieldEditor: (key) ->
     throw "expected key to be a string" if !_.isString(key)
     throw "expected this.schema to be an object" if !_.isObject(@schema)
 
@@ -330,6 +339,19 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
     return options
 
 
+  optionsForField: (key) ->
+    options =
+      form: this
+      idPrefix: @options.idPrefix
+      model: @model
+
+    if _.isArray(key)
+      options.editors = (@optionsForFieldEditor(k) for k in key)
+    else
+      options.editors = [@optionsForFieldEditor(key)]
+    return options
+
+
   # **
   # * Returns new field, caller needs to append it to the document
   # * @param key
@@ -340,7 +362,10 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
     if (!options)
       options = this.optionsForField(key);
 
-    field = new Backbone.Edit.Field(options);
+    field_class = if options.schema then options.schema.field else options.editors[0].schema.field
+    field = new (field_class || Backbone.Edit.Field)(options);
+    throw "expected a Backbone.Edit.Field" if !(field instanceof Backbone.Edit.Field)
+
     @fields[key] = field;
     return field
 
@@ -353,7 +378,9 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
       @fields[key].close();
       delete @fields[key]
 
-
+  deactivateFields: ->
+    for key of @fields
+      @fields[key].deactivate();
 
 
 
@@ -374,6 +401,9 @@ class Backbone.Edit.Form extends Backbone.Marionette.ItemView
     super
     @showFields()
 
+  onDeactivate: ->
+    super
+    @deactivateFields()
 
   beforeClose: ->
     super
@@ -395,9 +425,11 @@ class Backbone.Edit.Form extends Backbone.Marionette.ItemView
 
 class Backbone.Edit.Field extends Backbone.Marionette.View
   Backbone.Edit.FindElementMixin.add_to(@)
+  Backbone.Edit.OnContainerResizeMixin.add_to(@)
 
-  # **
+  # Backbone.Edit.Field
   # * @param {Object}  Options
+  #
   # *      Required:
   # *          key     {String} : The model attribute key
   # *      Optional:
@@ -408,111 +440,44 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # *
   initialize: (options) ->
     @form = options.form
-    @key = options.key;
-    @errors_key = options.errors_key || @key;
-    @value = options.value;
-    @model = options.model;
+    @model = options.model
+    @editors = []
 
-    # Get schema
-    if _.isString(options.schema)
-      @schema = { type: options.schema }  # Handle schema type shorthand where the editor name is passed instead of a schema config object
-    else
-      @schema = options.schema || {}
-    helpers.setSchemaDefaults(@schema, @key); # Set schema defaults
+    if  options.key or options.errors_key or options.value or options.schema
+      throw "argument error" if options.editors
+      options.editors = [_.pick(options, 'key', 'errors_key', 'value', 'schema')]
+
+    @error_keys = []
+    change_keys = []   # change events that we want to bind to
+    for editor in options.editors
+      throw "Backbone.Edit.Field: key is required" if !_.isString(editor.key)
+      change_keys.push("change:#{editor.key}")
+
+      editor.errors_key = editor.errors_key || editor.key # properties within serverErrors & clientErrors that we want to watch for, by
+                                                          # default this will be a list of editor keys
+      # schema
+      if _.isString(editor.schema)  # Get schema
+        editor.schema = { type: editor.schema }  # Handle schema type shorthand where the editor name is passed instead of a schema config object
+      else
+        editor.schema = _.extend({}, editor.schema || {})    # Create a (shallow) clone to avoid modifcation of shared data structures:
+      helpers.setSchemaDefaults(editor.schema, editor.key); # Set schema defaults
+
 
     if (@model)
       @bindTo(@model, "serverErrorsChanged", @on_serverSideValidation)
       @bindTo(@model, "clientErrorsChanged", @on_clientSideValidation)
-      @bindTo(@model, "change:"+this.key,    @on_modelChanged)
+      @bindTo(@model, change_keys.join(" "), @on_modelChanged)
       @bindTo(@model, "change:canEdit",      @on_canEditChanged)
 
 
-  render: ->
-    templates = Backbone.Edit.templates
 
-    # Render may have already been called - make sure we remove old versions of the editor:
-    @_closeEditor()
-
-    # Standard options that will go to all editors
-    options =
-      form: @form,
-      key: @key,
-      schema: @schema,
-      idPrefix: this.options.idPrefix,
-      id: @generateId()
-
-
-    # Decide on data delivery type to pass to editors
-    if (@model)
-      options.model = @model;
-      options.editable = @model.canEdit() if _.isFunction(@model.canEdit)
-    else
-      options.value = @value
-
-    @_setEditor(helpers.createEditor(@schema.type, options))
-
-    #Create the element
-    field_options =
-      key:    @key
-      title:  @schema.title
-      id:     @editor.id
-      type:   @schema.type
-      editor: '<span class="bbf-placeholder-editor"></span>'
-      help:   '<span class="bbf-placeholder-help"></span>'
-    $field = $(templates[@schema.template](field_options ))
-
-    # Render editor
-    $editorPlaceholder = $('.bbf-placeholder-editor', $field);
-    if (@schema.prepend)
-      prepend = $('<span class="add-on"></span>');
-      prepend.text(@schema.prepend);
-      $editorPlaceholder.parent().addClass('input-prepend');
-      $editorPlaceholder.parent().prepend(prepend);
-
-    if (@schema.append)
-      append = $('<span class="add-on"></span>');
-      append.text(@schema.append);
-      $editorPlaceholder.parent().addClass('input-append');
-      $editorPlaceholder.parent().append(append)
-
-    $editorPlaceholder.replaceWith(@editor.render().el)
-
-
-    # Set help text
-    @$help = $('.bbf-placeholder-help', $field).parent();
-    if @$help
-      @$help.empty();
-
-
-    $field.addClass(@schema.fieldClass) if (@schema.fieldClass)  # Add custom CSS class names
-    $field.attr(@schema.fieldAttrs) if (@schema.fieldAttrs)  # Add custom attributes
-
-    @setElement($field);
-    @editor.onShow() if @shown && @editor && @editor.onShow
-
-    #its possible the model may already have validation errors:
-    if @$help
-      if @model and @model.serverErrors and @model.serverErrors[@key]
-        @on_serverSideValidation()
-      else if @model and @model.clientErrors and @model.clientErrors[@key]
-        @on_clientSideValidation()
-      else
-        @clearError()
-
-    return this
-
-  onShow: ->
-    shown = true;
-    if (@editor && @editor.onShow)
-      @editor.onShow()
 
   # **
   # * Creates the ID that will be assigned to the editor
   # * @return {String}
   # */
-  generateId: ->
+  generateId: (id) ->
     prefix = @options.idPrefix
-    id = @key
 
     # If a specific ID prefix is set, use it
     if (_.isString(prefix) || _.isNumber(prefix))
@@ -527,15 +492,15 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
     return id;
 
 
-  formatErrors: (errors) ->
-    if @schema.dataType == 'Collection'
+  formatErrors: (schema, errors) ->
+    if schema.dataType == 'Collection'
       # we have an array of [{id = ,cid = , errors = { date=["can't be blank"], location=["can't be blank"] }
       allErrors = {};
 
       for item in errors
-        keys = _.keys(item.errors);
-        for key in _.keys(item.errors)
-          allErrors[key] = _.union( (allErrors[key] || []), item.errors[key] )
+        if _.isObject(item.errors)
+          for key in _.keys(item.errors)
+            allErrors[key] = _.union( (allErrors[key] || []), item.errors[key] )
 
       errors = [];
       for key in _.keys(allErrors)
@@ -546,9 +511,11 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
       for error in errors
         if _.isObject(error) and !_.isUndefined(error.message)
           list.append($("<li></li>").text(error.message))
+        else if _.isBoolean(error)
+          # we know an error occured but don't have text to display
         else
-          list.append($("<li></li>").text(error))
-      return list
+          list.append($("<li></li>").text(error.toString()))
+      return list.html()
 
     else
       return _.string.escapeHTML(errors.toString())
@@ -563,37 +530,78 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # *
   # * @param {String} errMsg
   # *
+  hasErrors: (errorType) ->
+    throw "invalid type #{errorType}" if errorType != "serverErrors" and errorType != "clientErrors"
+
+    errorsHtml = []
+    for editor in @options.editors
+      filtered = @filter_errors(@model[errorType][editor.errors_key])
+      if filtered
+        errorsHtml.push(@formatErrors(editor.schema, filtered))
+
+    return if errorsHtml.length > 0 then errorsHtml.join('') else null
+
+  hasServerSideErrors: ->
+    return @hasErrors("serverErrors")
+
+  hasClientSideErrors: ->
+    return @hasErrors("clientErrors")
+
   on_serverSideValidation: ->
-    itemErrors = @filter_errors(@model.serverErrors[@errors_key])
-    if (itemErrors)
-      @setError(@formatErrors(itemErrors))
+    itemErrors = @hasErrors("serverErrors")
+    if _.isString(itemErrors)
+      @setError(itemErrors)
     else
       @clearError()
 
   on_clientSideValidation: ->
-    itemErrors = @filter_errors(@model.clientErrors[@errors_key])
-    if (itemErrors)
-      @setError(@formatErrors(itemErrors))
+    itemErrors = @hasErrors("clientErrors")
+    if _.isString(itemErrors)
+      @setError(itemErrors)
     else
       @clearError()
 
-  on_modelChanged: ->
-    @setValue(@model.get(@key))
+  on_modelChanged: (model, value, options) ->
+    changed = @model.changedAttributes()
+    for editor in @editors
+      key = editor.field_editor_options.key
+      _.has(changed, key)
+      editor.setValue(@model.get(key))
 
-  on_canEditChanged: ->
-    @setEditable(@model.canEdit())
+  # --------------------------------------------------------------
+  # editable
+
+  getCanEdit: ->
+    if _.isFunction(@model.canEdit)
+      @model.canEdit()
+    else
+      return true
+
+  on_canEditChanged: (model, newValue) ->
+    @setEditable(newValue)
 
   setEditable: (canEdit) ->
-    if @editor
-      @editor.setEditable(canEdit)
+    throw "setEditable: expected a boolean" if !_.isBoolean(canEdit)
 
+    for editor in @editors
+      editor.setEditable(canEdit)
+
+  # --------------------------------------------------------------
 
   # **
   # * Update the model with the current value
   # */
-  on_editorChanged: ->
+  on_editorChanged: (editor) ->
+    throw "expected an editor" if !(editor instanceof Backbone.Marionette.View)
     @logValue()
-    @editor.commit()
+    editor.commit()
+
+
+  findErrorClassElement: ->
+    $element = if @$el.hasClass('control-group') then @$el else @$el.find('.control-group')
+    throw "field.setError: control-group element was not found" if  $element == 0
+    return $element
+
 
   # **
   # * Set the field into an error state, adding the error class and setting the error message
@@ -602,7 +610,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # *
   setError: (errHtml) ->
     errClass = Backbone.Edit.classNames.error
-    @$el.addClass(errClass)
+    $element = @findErrorClassElement().addClass(errClass)
     @$help.html(errHtml) if @$help
 
 
@@ -611,66 +619,212 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # *
   clearError: ->
     errClass = Backbone.Edit.classNames.error
-    @$el.removeClass(errClass)
+    @findErrorClassElement().removeClass(errClass)
 
     # some fields (e.g., Hidden), may not have a help el
     @$help.empty() if @$help
 
     # Reset help text if available
-    helpMsg = @schema.help;
+    helpMsg = @options.editors[0].schema.help;
     if (helpMsg)
       @$help.text(helpMsg)
 
   # **
   # * Update the model with the new value from the editor
   # *
-  commit: ->
-    return @editor.commit()
+  commit: (editor) ->
+    throw "expected an editor" if !(editor instanceof Backbone.Marionette.View)
+    return editor.commit()
 
 
   #**
   # * Get the value from the editor
   # * @return {Mixed}
   # */
-  getValue: ->
-    return @editor.getValue()
-
+  getValue: () ->
+    if @editors.length == 1
+      return @editors[0].getValue()
+    else
+      throw "getValue: not supported"
 
   # **
   # * Set/change the value of the editor
   # *
   setValue: (value) ->
-    @editor.setValue(value)
+    if @editors.length == 1
+      @editors[0].setValue(value)
+    else
+      throw "setValue: not supported"
+
+  setFocus: ->
+    if @editors.length >= 1
+      @editors[0].focus()
 
 
   logValue: ->
     return if !console or !console.log
     # console.log(@getValue())
 
-  _setEditor: (value) ->
-    @_closeEditor()
-    @editor = value;
-    @editor.on('changed', this.on_editorChanged, this)
 
 
-  _closeEditor: () ->
-    if @editor
-      @editor.off('change')
+  _closeEditors: () ->
+    for editor in @editors
+      editor.off('change')
+      editor.close()
+    @editors = []
 
-      # Call close if this is a Marionette view, otherwise call remove
-      if (_.isFunction(@editor.close))
-        @editor.close()
-      else
-        @editor.remove()
-      @editor = null
+  # -------------------------------------------------
+  # Autosize
+  # A Javscript method of setting the editor's width
+
+  on_container_resize: (details) ->
+    if details.widthChanged
+      @setAutosizedWidth()
+
+  setAutosizedWidth: ->
+
+    if @isAutosized() and @editors.length == 1
+      editor = @editors[0]
+
+      $parent = editor.$el.parent()
+      addOnWidth = 0
+      for element in $parent.find('.add-on')
+        addOnWidth = addOnWidth + $(element).outerWidth()
+
+      if addOnWidth > 0
+        editor.$el.css('width', '')
+        input_padding = editor.$el.outerWidth() - editor.$el.width()
+        inputWidth = editor.$el.outerWidth()
+        editor.$el.css('width', "#{inputWidth - addOnWidth - input_padding}px")
+
+  isAutosized: ->
+    schema = @options.editors[0].schema
+    return (schema.append or schema.prepend) and !schema.editorAttrs
+
+
+
+  # --------------------------------------------------------
+  # form lifecycle events
 
   beforeClose: ->
     super
-    @_closeEditor()
+    @_closeEditors()
 
-  #  onClose: ->
-  #    @_closeEditor()
+  onShow: (wasAlreadyActive) ->
+    super
+    if @isAutosized() and !wasAlreadyActive
+      @setContainer(@$el.parent())  # provided by OnContainerResizeMixin
 
+    editor.show() for editor in @editors
+
+  onDeactivate: ->
+    super
+    editor.deactivate() for editor in @editors
+
+    if @isAutosized()
+      @setContainer(null)  # provided by OnContainerResizeMixin
+
+  onClose: ->
+    super
+    editor.close() for editor in @editors
+
+  # --------------------------------------------------------
+
+  render: ->
+    templates = Backbone.Edit.templates
+
+    # Render may have already been called - make sure we remove old versions of the editor:
+    @_closeEditors()
+
+    template_args = { help: '<div class="bbf-placeholder-help"></div>' }
+
+    for editor_options, i in @options.editors
+
+      # Standard options that will go to all editors
+      options =
+        form: @form,
+        key:      editor_options.key,
+        schema:   editor_options.schema,
+        idPrefix: this.options.idPrefix,
+        id:       @generateId(editor_options.key)
+
+      # Decide on data delivery type to pass to editors
+      if (@model)
+        options.model = @model;
+        options.editable = @getCanEdit()
+      else
+        options.value = editor_options.value
+
+      editor_object = helpers.createEditor(editor_options.schema.type, options)
+      editor_object.field_editor_options = editor_options
+      editor_object.on('changed', this.on_editorChanged, this)
+      @editors.push(editor_object)
+
+      attr_index = if i == 0 then "" else "_#{i}"
+      template_args["key#{attr_index}"] =    editor_options.key
+      template_args["title#{attr_index}"] =  editor_options.schema.title
+      template_args["id#{attr_index}"] =     editor_object.id
+      template_args["type#{attr_index}"] =   editor_options.schema.type
+      template_args["editor#{attr_index}"] = "<div class=\"bbf-placeholder-editor#{attr_index}\"></div>"
+
+    # Render the template
+    template_name = @options.editors[0].schema.template
+    $field = $(_.string.trim(templates[template_name](template_args)))
+
+    # Embed the editor(s) within the template
+    for editor_options, i in @options.editors
+      editor_object = @editors[i]
+      attr_index = if i == 0 then "" else "_#{i}"
+
+      $editorPlaceholder = $(".bbf-placeholder-editor#{attr_index}", $field);
+      if editor_options.schema.prepend or editor_options.schema.append
+        # we need to put the editor within a containing div so that the css classes used to round the borders of the control
+        # work correctly.
+        #
+        # We could create another div ... or we could reuse $editorPlaceholder
+        $inputContainer = $editorPlaceholder
+        $inputContainer.removeClass('bbf-placeholder-editor')
+
+        $editorPlaceholder = $("<div class=\"bbf-placeholder-editor#{attr_index}\"></div>")
+        $inputContainer.append($editorPlaceholder)
+        if editor_options.schema.prepend
+          prepend = $('<span class="add-on"></span>');
+          prepend.text(editor_options.schema.prepend);
+          $inputContainer.addClass('input-prepend');
+          prepend.insertBefore($editorPlaceholder)
+
+        if editor_options.schema.append
+          append = $('<span class="add-on"></span>');
+          append.text(editor_options.schema.append);
+          $inputContainer.addClass('input-append');
+          append.insertAfter($editorPlaceholder)
+
+      $editorPlaceholder.replaceWith(editor_object.render().el)
+
+      $field.addClass(editor_options.schema.fieldClass) if (editor_options.schema.fieldClass)  # Add custom CSS class names
+      $field.attr(editor_options.schema.fieldAttrs) if (editor_options.schema.fieldAttrs)  # Add custom attributes
+
+
+    # Set help text
+    @$help = $('.bbf-placeholder-help', $field).parent();
+    if @$help
+      @$help.empty();
+
+
+    @setElement($field);
+    if @isActive
+      editor_object.show() for editor_object in @editors
+
+    #its possible the model may already have validation errors:
+    if @$help
+      if @model and @model.serverErrors and @hasErrors("serverErrors")
+        @on_serverSideValidation()
+      else if @model and @model.clientErrors and @hasErrors("clientErrors")
+        @on_clientSideValidation()
+      else
+        @clearError()
+
+    return this
 
 
 Backbone.Edit.editors = {}

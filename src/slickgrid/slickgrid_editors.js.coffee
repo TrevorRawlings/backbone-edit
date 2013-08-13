@@ -18,6 +18,8 @@ editors = Backbone.Slickgrid.editors
 editors.getEditor_default = (schema) ->
   if ((schema.type == 'Select') or (schema.type == 'GroupedSelect'))
     return editors.SelectEditor
+  else if ((schema.dataType == 'Text') and (schema.type == 'AutoSizeTextArea'))
+    return editors.Detached.MultiLineText
   else
     return editors.DefaultEditor
 
@@ -46,10 +48,13 @@ class editors.Base
     @appendEditor(args)
     @editorFocus()
 
+  editorAttrs: (currentAttrs) ->
+    return currentAttrs
 
   editorOptions: () ->
     options = { }
     options.schema = _.clone( @column.schema )
+    options.schema.editorAttrs = @editorAttrs(options.schema.editorAttrs)
     options.model = @item
     options.key = @column.field
     options.editable = true
@@ -61,6 +66,8 @@ class editors.Base
     editorOptions = @editorOptions()
     @editor = Backbone.Edit.helpers.createEditor( @column.schema.type, editorOptions );
     @editor.on('changed', @on_editorChanged, @)
+    @editor.on('applyingValue:start',  @applyingValue_start, @)
+    @editor.on('applyingValue:finish', @applyingValue_finish, @)
     return @editor
 
   editorFocus: ->
@@ -83,12 +90,11 @@ class editors.Base
   #  remove all data, events & dom elements created in the constructor
   destroy: ->
     if @editor
-      @editor.off('change');
+      @editor.off('changed', @on_editorChanged, @);
+      @editor.off('applyingValue:start',  @applyingValue_start, @)
+      @editor.off('applyingValue:finish', @applyingValue_finish, @)
 
-      if _.isFunction(@editor.close)
-        @editor.close()     # To support a future change to backbone.marionette based editors
-      else
-        @editor.remove()
+      @editor.close()
       @editor = null
 
   # set the focus on the main input control (if any)
@@ -146,6 +152,8 @@ class editors.Base
       # slickgrid has a slightly backward approach to adding new records
       # here we just need to set the value to the empty 'item' object
       item[@column.field] = state
+
+
 
 
   # validate user input and return the result along with the validation message, if any
@@ -228,9 +236,6 @@ class editors.DetachedEditor extends editors.Base
     @wrapper.focus()
 
 
-
-
-
   updateValue: ->
     # new Landscape.Helpers.Slickgrid.ModelFormatter()
     if @args.column.formater
@@ -257,8 +262,18 @@ class editors.DetachedEditor extends editors.Base
 
     wrapper = @getWrapper()
     wrapper.append(@editor.render().el)
-    @editor.onShow()
+    @editor.show()
     @position(args.position)
+
+  editorAttrs: ->
+    if !@_editorAttrs
+      width = $(@args.container).width()
+      width = 400 if width < 400
+
+      attrs = []
+      attrs.push( "width: #{width}px;"  )
+      @_editorAttrs = { style: attrs.join(" ") }
+    return @_editorAttrs
 
   editorFocus: ->
     # @editor.delayed_focus()
@@ -282,32 +297,36 @@ class editors.DetachedEditor extends editors.Base
 
   _setup_click: ->
     @ready_for_click = true
-    #    if @wrapper
-    #
-    #      $("body").click(@_document_click)
-
-  #  _document_click: (e) ->
-  #    if @wrapper
-  #      @cancel();
-  #    $(@).unbind(e)
 
   # this event may or maynot be within @wrapper
   # see on_document_event() in Backbone.Edit.editors.Slickgrid
   handle_document_event: (e) ->
     return if !@wrapper or !@ready_for_click
 
-    if $.contains(@wrapper[0], e.target) or @wrapper[0] == e.target
+    if @_equal_or_contains(@wrapper[0], e.target) or @isEditorElement(e.target)
       return "contains"
     else
       @focus_lost = true
       @cancel();
 
+  _equal_or_contains: (contains, target) ->
+    Backbone.Edit.helpers.dom.element_equal_or_contains(contains, target)
+
+  isEditorElement: (target) ->
+    return @_equal_or_contains(@editor.el, target)
+
   _handleKeyDown: (e) ->
-    if (e.which == $.ui.keyCode.ENTER && e.ctrlKey)
-      @save()
-    else if (e.which == $.ui.keyCode.ENTER)
+
+    if (e.which == $.ui.keyCode.ENTER)
       e.preventDefault();
-      @editor.delayed_focus()
+      if _.isFunction(@editor.delayed_focus)
+        @editor.delayed_focus()
+      else
+        @editor.focus()
+    else if (e.which == $.ui.keyCode.ESCAPE and @isEditorElement(e.target))
+      @wrapper.focus()
+      @updateValue()
+      e.preventDefault()
     else if (e.which == $.ui.keyCode.ESCAPE)
       e.preventDefault();
       @cancel()
@@ -381,35 +400,30 @@ class editors.DetachedEditor extends editors.Base
     else
       @args.cancelChanges();
 
+editors.Detached = {} if !editors.Detached
+
+class editors.Detached.MultiLineText extends editors.DetachedEditor
 
 
-class editors.DetachedSlickgrid extends editors.DetachedEditor
 
-  constructor: ->
-    _.bindAll(this, 'applyingValue_start', 'applyingValue_finish')
+
+  _handleKeyDown: (e) ->
+    # allow enter, key up, down, left and right to be process normally by the text box
+    if @editor.el == e.target
+      switch e.which
+        when $.ui.keyCode.ENTER,  $.ui.keyCode.UP, $.ui.keyCode.DOWN, $.ui.keyCode.LEFT, $.ui.keyCode.RIGHT
+          return
     super
 
 
-  constructEditor: ->
-    editor = super
-    editor.on_applyingValue_start = @applyingValue_start
-    editor.on_applyingValue_finish = @applyingValue_finish
-    return editor
 
-  editorAttrs: ->
-    width = $(@args.container).width()
-    width = 400 if width < 400
 
-    if !@_editorAttrs
-      attrs = []
-      attrs.push( "width: #{width}px;"  )
-      # attrs.push( 'width: 100%;'  )
-      @_editorAttrs = { style: attrs.join(" ") }
-    return @_editorAttrs
+class editors.Detached.Slickgrid extends editors.DetachedEditor
+
+
 
   editorOptions: () ->
     options = super
-    options.schema.editorAttrs = @editorAttrs()
     options.newEditorLock = true
     return options
 
@@ -423,5 +437,4 @@ class editors.DetachedSlickgrid extends editors.DetachedEditor
 
       @editor.on_document_event(e)
     super
-
 

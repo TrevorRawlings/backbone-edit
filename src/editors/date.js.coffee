@@ -32,8 +32,6 @@ class editors.DateTypeBase extends editors.Base
     else
       @$el.mobiscroll().date({ dateFormat: 'dd/mm/yyyy', dateOrder: 'D dMyy', maxDate: Landscape.Helpers.DateUtils.dateAdd( new Date(), 'Y', 10) });
 
-    @$el.attr("placeholder", this.schema.placeholder) if (@schema.placeholder)
-
     @setValue(this.value)
     return this
 

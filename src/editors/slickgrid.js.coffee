@@ -47,10 +47,12 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     @$el.addClass(@editorSchema.editorClass)  if @editorSchema.editorClass
     @$el.attr(@editorSchema.editorAttrs) if @editorSchema.editorAttrs
     @$el.attr("placeholder", @editorSchema.placeholder) if (@editorSchema.placeholder)
+    super
 
     editable = if _.isUndefined(@options.editable) then false else @options.editable
     @setEditable(editable)
-    super
+
+
 
   # =====================================================================================
   # Methods required by Backbone.Edit.editor interface
@@ -67,7 +69,9 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
       @editable = value
       if @grid
         @removeGrid()
-        @on_CollectionChanged()
+
+      @allColumns = @getColumns()  # the list of visible columns may have changed (the move & delete special columns are only displayed when the grid is editable)
+      @on_CollectionChanged()
 
   _delayed_focus_click: ->
     if @grid
@@ -149,7 +153,6 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     grid.onBeforeEditCell.subscribe( @on_BeforeEditCell )
     grid.onBeforeCellEditorDestroy.subscribe( @on_BeforeCellEditorDestroy )
 
-
     grid.setSelectionModel(new Slick.RowSelectionModel({selectActiveRow: true, multiSelect: false}));
 
 
@@ -210,7 +213,7 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
       @grid.resetActiveCell()
 
   consoleLog: (message) ->
-    console.log(message)
+    #console.log(message)
 
 
 
@@ -294,7 +297,8 @@ class Backbone.Edit.editors.Slickgrid extends Backbone.Slickgrid.View
     column.editor = null
 
     if type == "index"
-      column.formatter = Backbone.Slickgrid.formatter.rowIndexFormater
+      column.formatter = @formatter.rowIndexFormater
+      column.name = "#"
     else
       column.formatter = null
 

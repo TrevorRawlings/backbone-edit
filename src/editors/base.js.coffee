@@ -10,7 +10,7 @@ editors = Backbone.Edit.editors
 # *         value   {String} : When not using a model. If neither provided, defaultValue will be used.
 # *         schema  {Object} : May be required by some editors
 # */
-class editors.Base extends Backbone.View
+class editors.Base extends Backbone.Marionette.View
 
   defaultValue: null
 
@@ -36,10 +36,28 @@ class editors.Base extends Backbone.View
     @$el.attr('name', @key) if (@key)
     @$el.addClass(@schema.editorClass) if (@schema.editorClass)
     @$el.attr(@schema.editorAttrs) if (@schema.editorAttrs)
-    @$el.attr("placeholder", this.schema.placeholder) if (@schema.placeholder)
+    @initialize_placeholder()
 
     editable = if _.isUndefined(this.options.editable) then true else this.options.editable
     @setEditable(editable)
+
+  # ----------------------------------------------------
+  # placeholder
+  initialize_placeholder: ->
+    if _.isString(@schema.placeholder)
+      @$el.attr("placeholder", @schema.placeholder)
+    else if @schema.placeholder == Backbone.Edit.enum.DefaultValue
+      @$el.attr("placeholder", "#{@getDefaultValue()}")
+      @bindTo(@model, "change:default:#{@key}", @on_default_value_changed)
+
+
+  on_default_value_changed: ->
+    @$el.attr("placeholder", "#{@getDefaultValue()}")
+
+  getDefaultValue: ->
+    return @model["default#{_.string.capitalize(@key)}"]()
+
+  # ----------------------------------------------------
 
   isInModal: ->
     @$el.closest('#modal').length >= 1
@@ -63,14 +81,24 @@ class editors.Base extends Backbone.View
   # * @return {Boolean}
   # */
   triggerChanged: ->
+    return if @updatingJavascriptEditor
+
     # I Tried adding a 0 second delay here so that the changed event happens after the jQuery trigger has returned.  I
     # haven't seen any problems but imagine that avoiding reentry into jQuery is probably a good idea
     # window.setTimeout( function () {  self.trigger('changed'); },  0);
-    @trigger('changed')
+    @trigger('changed', this)
     return true
 
   focus: ->
     @$el.focus()
+
+  _delayed_focus_click: ->
+    if @isActive
+      @focus()
+
+  delayed_focus: ->
+    if @isActive
+      window.setTimeout( @_delayed_focus_click,  0);
 
   # /**
   # * Update the model with the current value
@@ -81,9 +109,6 @@ class editors.Base extends Backbone.View
   commit: ->
     @model.set(@key, @getValue(), { changeSource: "ui" } )
 
-  # To support a future change to backbone.marionette based editors
-  close: ->
-    @remove()
 
 
 
@@ -108,13 +133,16 @@ class editors.Text extends editors.Base
   defaultValue: ''
   events: {  'change': 'triggerChanged' }
 
+  # the css in _forms.scss has styling for the following input types:
+  validInputTypes: ["text", "password", "datetime",  "datetime-local", "date", "month", "time", "week", "number", "email", "url", "search", "tel", "color"]
+
   initialize: (options) ->
     super
 
     # Allow customising text type (email, phone etc.) for HTML5 browsers
     if (@schema && @schema.editorAttrs && @schema.editorAttrs.type)
       type = schema.editorAttrs.type;
-    else if (@schema && @schema.dataType)
+    else if @schema and @schema.dataType and _.contains(@validInputTypes, @schema.dataType)
       type = @schema.dataType;
     else
       type = 'text';

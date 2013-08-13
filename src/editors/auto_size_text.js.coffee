@@ -6,7 +6,19 @@ editors = Backbone.Edit.editors
 class editors.AutoSizeTextArea extends editors.TextArea
   className: "autoSizeTextArea"
 
+  updateHeight: ->
+    if @isActive
+      @$el.TextAreaExpander(50, 200)
+
+  onShow: ->
+    super
+    @updateHeight()
+
+  setValue: ->
+    super
+    @updateHeight()
+
   render: ->
     super
-    this.$el.TextAreaExpander(50, 200)
+    @updateHeight()
     return this;
