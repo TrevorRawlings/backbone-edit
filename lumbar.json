@@ -1,0 +1,49 @@
+{
+    "scope": "none",
+    "packages": {
+        "backbone-edit": {
+            "modules": [
+                "base",
+                "slickgrid",
+                "forms",
+                "editors"
+            ]
+        }
+    },
+    "modules": {
+        "base": {
+            "scripts": [
+                "build/base/find_element_mixin.js",
+                "build/base/on_container_resize_mixin.js",
+                "build/base/backbone_edit_helpers.js",
+                "build/base/converters.js",
+                "build/base/formatters.js"
+            ]
+        },
+        "slickgrid": {
+            "styles": [
+                "build/slickgrid/slickgrid_formatters.js",
+                "build/slickgrid/slickgrid_editors.js",
+                "build/slickgrid/slickgrid_view.js"
+            ]
+        },
+        "forms": {
+            "scripts": [
+                "build/forms.js"
+            ]
+        },
+        "editors": {
+            "scripts": [
+                "build/editors/base.js",
+                "build/editors/date.js",
+                "build/editors/currency.js",
+                "build/editors/auto_size_text.js",
+                "build/editors/option_select.js",
+                "build/editors/select2_base.js",
+                "build/editors/select.js",
+                "build/editors/tag_select.js",
+                "build/editors/slickgrid.js"
+            ]
+        }
+    }
+}

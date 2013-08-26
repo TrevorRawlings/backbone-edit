@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]> <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]> <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Backbone Edit Tests</title>
+    <meta name="description" content="Backbone Edit Tests">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- html5-boilerplate-->
+    <link rel="stylesheet" href="lib/bower_components/html5-boilerplate/css/normalize.css">
+    <link rel="stylesheet" href="lib/bower_components/html5-boilerplate/css/main.css">
+    <script src="lib/bower_components/html5-boilerplate/js/vendor/modernizr-2.6.2.min.js"></script>
+
+    <!-- SlickGrid -->
+    <link type="text/css" href="lib/bower_components/slickgrid/slick.grid.css" rel="stylesheet">
+    <link type="text/css" href="lib/bower_components/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css" rel="stylesheet">
+
+    <!-- Jasmine -->
+    <link type="text/css" href="lib/bower_components/jasmine/src/html/jasmine.css" rel="stylesheet">
+
+  </head>
+  <body>
+    <!--[if lt IE 7]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+
+    <div class="page-header">
+      <h1>Backbone Edit Tests</h1>
+    </div>
+    <div class="TestDiv">
+    </div>
+
+    <script src="lib/bower_components/jquery/jquery.js"></script>
+    <script src="lib/bower_components/jquery-ui/jquery-ui.js"></script>
+    <script src="lib/bower_components/html5-boilerplate/js/vender/plugins.js"></script>
+
+
+    <!-- Underscore -->
+    <script src="lib/bower_components/underscore/underscore.js"></script>
+    <script src="lib/bower_components/underscore.string/lib/underscore.string.js"></script>
+
+
+    <!-- Slickgrid -->
+    <script src="lib/bower_components/slickgrid/lib/jquery.event.drag-2.0.min.js"></script>
+    <script src="lib/bower_components/slickgrid/slick.core.js"></script>
+    <script src="lib/bower_components/slickgrid/slick.grid.js"></script>
+
+
+    <!-- mobiscroll -->
+    <script src="lib/bower_components/mobiscroll/js/mobiscroll.core.js"></script>
+    <script src="lib/bower_components/mobiscroll/js/mobiscroll.datetime.js"></script>
+
+
+    <!-- Backbone -->
+    <script src="lib/bower_components/backbone/backbone.js"></script>
+    <script src="lib/backbone.marionette.js"></script>
+
+
+
+    <script src= "build/modules/base/find_element_mixin.js"></script>
+    <script src= "build/modules/base/on_container_resize_mixin.js"></script>
+    <script src= "build/modules/base/backbone_edit_helpers.js"></script>
+    <script src= "build/modules/base/converters.js"></script>
+    <script src= "build/modules/base/formatters.js"></script>
+    <script src= "build/modules/slickgrid/slickgrid_formatters.js"></script>
+    <script src= "build/modules/slickgrid/slickgrid_editors.js"></script>
+    <script src= "build/modules/slickgrid/slickgrid_view.js"></script>
+    <script src= "build/modules/forms/forms.js"></script>
+    <script src= "build/modules/editors/base.js"></script>
+    <script src= "build/modules/editors/date.js"></script>
+    <script src= "build/modules/editors/currency.js"></script>
+    <script src= "build/modules/editors/auto_size_text.js"></script>
+    <script src= "build/modules/editors/option_select.js"></script>
+    <script src= "build/modules/editors/select2_base.js"></script>
+    <script src= "build/modules/editors/select.js"></script>
+    <script src= "build/modules/editors/tag_select.js"></script>
+    <script src= "build/modules/editors/slickgrid.js"></script>
+
+
+    <!-- Jasmine -->
+    <script src="lib/bower_components/jasmine/lib/jasmine-core/jasmine.js"></script>
+    <script src="lib/bower_components/jasmine/lib/jasmine-core/jasmine-html.js"></script>
+    <script type="text/javascript">
+        (function() {
+            var jasmineEnv = jasmine.getEnv();
+            jasmineEnv.updateInterval = 1000;
+
+            var htmlReporter = new jasmine.HtmlReporter();
+
+            jasmineEnv.addReporter(htmlReporter);
+
+            jasmineEnv.specFilter = function(spec) {
+                return htmlReporter.specFilter(spec);
+            };
+
+            var currentWindowOnload = window.onload;
+
+            window.onload = function() {
+                if (currentWindowOnload) {
+                    currentWindowOnload();
+                }
+                execJasmine();
+            };
+
+            function execJasmine() {
+                jasmineEnv.execute();
+            }
+
+        })();
+    </script>
+
+
+
+    <script src="prices_model.js"></script>   <!-- store the prices in a backbone collection -->
+    <script src="prices_view.js"></script>    <!-- render the table as a backbone view -->
+
+    <script src="tests/tests.js"></script>
+
+  </body>
+</html>

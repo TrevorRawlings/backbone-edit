@@ -14,3 +14,5 @@ log/newrelic_agent_store.*
 
 /config/application.yml
 /config/database.yml
+lib/bower_components/
+node_modules/
