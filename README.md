@@ -1,6 +1,6 @@
 # backbone.edit
 
-Automatically renders forms that include datepicker, [Select2](http://ivaynberg.github.io/select2/) and slickgrid controls
+Automatically renders forms that include [datepicker](http://jqueryui.com/datepicker/), [Select2](http://ivaynberg.github.io/select2/) and [SlickGrid](https://github.com/mleibman/SlickGrid) controls
 
 
 backbone.edit started from a desire to move the validation logic that is built into [backbone-forms](https://github.com/powmedia/backbone-forms)
@@ -11,12 +11,12 @@ to manage the closing of editors as parent layouts are removed from the DOM.
 
 Backbone edit modules
 ---------------------
-base        - Utillity functions and classes used by the other modules
-form        - Displays editable forms - similar to [backbone-forms](https://github.com/powmedia/backbone-forms).  Backbone.Edit.editors
-              will be required for each data type that is
-editors     - Backbone-edit wrappers around edit controls.  Supported editors include [Select2](http://ivaynberg.github.io/select2/),
-              (datepicker)[http://jqueryui.com/datepicker/], [mobiscroll.com datetime](http://demo.mobiscroll.com/datetime) and the basic html form elements.
-slickgrid   - Wrapper around [SlickGrid](https://github.com/mleibman/SlickGrid). For data display the only dependency is the 'base' module.
+1. **base** - Utillity functions and classes used by the other modules
+2. **form** - Displays editable forms - similar to [backbone-forms](https://github.com/powmedia/backbone-forms).  A Backbone.Edit.editors._editor_
+              will be required for each supported data type.
+3. **editors** - Backbone-edit wrappers around edit controls.  Supported editors include [Select2](http://ivaynberg.github.io/select2/),
+              [datepicker](http://jqueryui.com/datepicker/), [mobiscroll.com datetime](http://demo.mobiscroll.com/datetime) and the basic html form elements.  
+4. **slickgrid** - Wrapper around [SlickGrid](https://github.com/mleibman/SlickGrid). For data display the only dependency is the 'base' module.
               To support editing then the 'form' and 'editors' modules are also required.
 
 
