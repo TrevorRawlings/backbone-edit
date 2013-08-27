@@ -1,10 +1,4 @@
-var base;
-base = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var base = exports;
-
-  (function() {
+(function() {
   var _ref,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -699,20 +693,7 @@ base = (function() {
 }).call(this);
 
 ;;
-
-
-  if (base !== module.exports) {
-    console.warn("base internally differs from global");
-  }
-  return module.exports;
-}).call(this);
-var slickgrid;
-slickgrid = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var slickgrid = exports;
-
-  (function() {
+(function() {
   if (!Backbone.Slickgrid) {
     Backbone.Slickgrid = {};
   }
@@ -2028,20 +2009,7 @@ slickgrid = (function() {
 }).call(this);
 
 ;;
-
-
-  if (slickgrid !== module.exports) {
-    console.warn("slickgrid internally differs from global");
-  }
-  return module.exports;
-}).call(this);
-var forms;
-forms = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var forms = exports;
-
-  (function() {
+(function() {
   var classNames, templates, _ref, _ref1, _ref2,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -2788,20 +2756,7 @@ forms = (function() {
 }).call(this);
 
 ;;
-
-
-  if (forms !== module.exports) {
-    console.warn("forms internally differs from global");
-  }
-  return module.exports;
-}).call(this);
-var editors;
-editors = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var editors = exports;
-
-  (function() {
+(function() {
   var editors, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -4921,13 +4876,4 @@ editors = (function() {
 
   })(Backbone.Slickgrid.View);
 
-}).call(this);
-
-;;
-
-
-  if (editors !== module.exports) {
-    console.warn("editors internally differs from global");
-  }
-  return module.exports;
 }).call(this);

@@ -1,4 +1,5 @@
 {
+    "scope": "none",
     "platforms": [ "web" ],
     "packages": {
         "backbone-edit-full": {

@@ -1,10 +1,4 @@
-var base;
-base = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var base = exports;
-
-  (function() {
+(function() {
   var _ref,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -699,20 +693,7 @@ base = (function() {
 }).call(this);
 
 ;;
-
-
-  if (base !== module.exports) {
-    console.warn("base internally differs from global");
-  }
-  return module.exports;
-}).call(this);
-var slickgrid;
-slickgrid = (function() {
-  var module = {exports: {}};
-  var exports = module.exports;
-  var slickgrid = exports;
-
-  (function() {
+(function() {
   if (!Backbone.Slickgrid) {
     Backbone.Slickgrid = {};
   }
@@ -2025,13 +2006,4 @@ slickgrid = (function() {
 
   })(Backbone.Marionette.View);
 
-}).call(this);
-
-;;
-
-
-  if (slickgrid !== module.exports) {
-    console.warn("slickgrid internally differs from global");
-  }
-  return module.exports;
 }).call(this);
