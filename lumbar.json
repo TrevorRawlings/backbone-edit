@@ -1,48 +1,59 @@
 {
-    "scope": "none",
+    "platforms": [ "web" ],
     "packages": {
-        "backbone-edit": {
+        "backbone-edit-full": {
+            "platforms": [ "web" ],
             "modules": [
                 "base",
                 "slickgrid",
                 "forms",
                 "editors"
-            ]
+            ],
+            "combine": true
+        },
+        "backbone-edit-slickgrid": {
+            "platforms": [ "web" ],
+            "modules": [
+                "base",
+                "slickgrid"
+            ],
+            "combine": true
         }
+
     },
     "modules": {
         "base": {
             "scripts": [
-                "build/base/find_element_mixin.js",
-                "build/base/on_container_resize_mixin.js",
-                "build/base/backbone_edit_helpers.js",
-                "build/base/converters.js",
-                "build/base/formatters.js"
+                "build/modules/base/find_element_mixin.js",
+                "build/modules/base/on_container_resize_mixin.js",
+                "build/modules/base/backbone_edit_helpers.js",
+                "build/modules/base/converters.js",
+                "build/modules/base/formatters.js"
             ]
         },
         "slickgrid": {
-            "styles": [
-                "build/slickgrid/slickgrid_formatters.js",
-                "build/slickgrid/slickgrid_editors.js",
-                "build/slickgrid/slickgrid_view.js"
+            "scripts": [
+                "build/modules/slickgrid/slickgrid_formatters.js",
+                "build/modules/slickgrid/slickgrid_editors.js",
+                "build/modules/slickgrid/slickgrid_view.js"
             ]
         },
         "forms": {
             "scripts": [
-                "build/forms.js"
+                "build/modules/forms/forms.js"
             ]
         },
         "editors": {
             "scripts": [
-                "build/editors/base.js",
-                "build/editors/date.js",
-                "build/editors/currency.js",
-                "build/editors/auto_size_text.js",
-                "build/editors/option_select.js",
-                "build/editors/select2_base.js",
-                "build/editors/select.js",
-                "build/editors/tag_select.js",
-                "build/editors/slickgrid.js"
+                "build/modules/editors/base.js",
+                "build/modules/editors/date.js",
+                "build/modules/editors/currency.js",
+                "build/modules/editors/auto_size_text.js",
+                "build/modules/editors/option_select.js",
+                "build/modules/editors/select2_base.js",
+                "build/modules/editors/select.js",
+                "build/modules/editors/tag_select.js",
+                "build/modules/editors/slickgrid.js"
             ]
         }
     }

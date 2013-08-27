@@ -6,6 +6,7 @@ module.exports = function(grunt) {
     // Load required NPM tasks.
     // You must first run `npm install` in the project's root directory to get these dependencies.
     grunt.loadNpmTasks('grunt-contrib-coffee');
+    grunt.loadNpmTasks('lumbar');
 
 
     // Parse config files
@@ -23,10 +24,10 @@ module.exports = function(grunt) {
     config.meta = _.extend({}, packageConfig);
 
     // The "grunt" command with no arguments
-    grunt.registerTask('default', ['coffee']);
+    grunt.registerTask('default', ['coffee', 'lumbar:build']);
 
     // Bare minimum for debugging
-    grunt.registerTask('dev', ['coffee']);
+    grunt.registerTask('dev', ['coffee', 'lumbar:build']);
 
 
     /* coffee script */
@@ -35,32 +36,25 @@ module.exports = function(grunt) {
     var i, modules = ['base', 'slickgrid', 'forms', 'editors'];
     for (i = 0; i < modules.length; i++) {
         var module = modules[i];
-        config.coffee[module] = {files:
-                                [{ expand: true, flatten: true, nonull: true,
-                                  cwd: 'src/',
-                                  src: [module + '/*.js.coffee'],
-                                  dest: 'build/modules/' + module,
-                                  ext: '.js' }]
+        config.coffee[module] = { files: [{ expand: true,
+                                            flatten: true,
+                                            nonull: true,
+                                            cwd: 'src/',
+                                            src: [module + '/*.js.coffee'],
+                                            dest: 'build/modules/' + module,
+                                            ext: '.js'
+                                          }]
                                 }
-
-        config.coffee[module + '_joined']
-                              = { options: {  join: true },
-                                  files:  {}
-                                }
-        config.coffee[module + '_joined'].files['build/modules/' + module + '.js'] = 'src/' + module + '/*.js.coffee'
-    }
-    config.coffee.backbone_edit = {
-        options: { join: true },
-        files:   [{
-            expand: true,
-            flatten: true,
-            cwd: 'src',
-            src: ['/**/*.coffee'],
-            dest: 'build/',
-            ext: '.js' }]
     }
 
 
+    // assemble modules
+    config.lumbar = {
+        build: {
+            build: 'lumbar.json',
+            output: 'build/packages' // a directory. lumbar doesn't like trailing slash
+        }
+    };
 
 
     // create minified versions (*.min.js)
