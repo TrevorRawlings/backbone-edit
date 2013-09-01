@@ -89,8 +89,10 @@
         value = this.loadNestedAttribute(col, data);
       } else if (col.schema && col.schema.custom_get) {
         value = data.get(col.field);
-      } else {
+      } else if (data.getRelated) {
         value = data.getRelated(col.field, this.get_related_options);
+      } else {
+        value = data.get(col.field);
       }
       return Backbone.Edit.formatters.modelFormater(value, this.lazy_load_options);
     };
@@ -118,7 +120,11 @@
         if (i === last_i) {
           return model.get(attr);
         } else {
-          model = model.getRelated(attr, this.get_related_options);
+          if (model.getRelated) {
+            model = model.getRelated(attr, this.get_related_options);
+          } else {
+            model = model.get(attr);
+          }
           if (model === null) {
             return null;
           }

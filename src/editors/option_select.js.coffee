@@ -74,7 +74,7 @@ class editors.OptionSelect extends editors.Base
       @check_options_valid(options)
       @select_options = options
 
-      if (options instanceof Backbone.Collection) or ( options instanceof Landscape.Subset)
+      if Backbone.Edit.helpers.isCollection(options)
         @unbindFromCollection()
         @bindToCollection(options)
 
@@ -83,7 +83,7 @@ class editors.OptionSelect extends editors.Base
 
 
   check_options_valid: (options) ->
-    if !_.isArray(options) and !(options instanceof Backbone.Collection) and !( options instanceof Landscape.Subset)
+    if !_.isArray(options) and !Backbone.Edit.helpers.isCollection(options)
       throw new Error("expected string, array or collection")
 
 
@@ -129,7 +129,7 @@ class editors.OptionSelect extends editors.Base
 
     if _.isArray(options)
       @_arrayToHtml(@$el, options)
-    else if (options instanceof Backbone.Collection) or ( options instanceof Landscape.Subset)
+    else if Backbone.Edit.helpers.isCollection(options)
       @_collectionToHtml(@$el, options)
     else
       throw new Error("renderOptions: expected an array or collection: #{options}")

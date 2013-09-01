@@ -140,7 +140,7 @@
     if (modelFormater == null) {
       modelFormater = formatters.modelFormater;
     }
-    if (value instanceof Backbone.Collection || value instanceof Landscape.Subset) {
+    if (Backbone.Edit.helpers.isCollection(value)) {
       return formatters.arrayFormater(value.models, modelFormater, options);
     } else if (_.isNull(value) || _.isUndefined(value)) {
       return "";

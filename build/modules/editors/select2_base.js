@@ -14,7 +14,7 @@
     }
 
     Select2Base.prototype.javascriptEditor = function() {
-      if (!categorizr.isDesktop) {
+      if (!Backbone.Edit.categorizr.isDesktop) {
         return false;
       }
       if (this.isInModal()) {

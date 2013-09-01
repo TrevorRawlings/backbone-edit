@@ -36,13 +36,18 @@
 
     <script src="lib/bower_components/jquery/jquery.js"></script>
     <script src="lib/bower_components/jquery-ui/jquery-ui.js"></script>
-    <script src="lib/bower_components/html5-boilerplate/js/vender/plugins.js"></script>
+    <script src="lib/bower_components/html5-boilerplate/js/plugins.js"></script>
 
 
     <!-- Underscore -->
     <script src="lib/bower_components/underscore/underscore.js"></script>
     <script src="lib/bower_components/underscore.string/lib/underscore.string.js"></script>
 
+    <!-- moment.js (only required by the date editor -->
+    <script src="lib/bower_components/momentjs/moment.js"></script>
+
+    <!-- numeral.js (only required by the currency editor -->
+    <script src="lib/bower_components/numeral/numeral.js"></script>
 
     <!-- Slickgrid -->
     <script src="lib/bower_components/slickgrid/lib/jquery.event.drag-2.0.min.js"></script>
@@ -62,6 +67,7 @@
 
 
     <script src= "build/modules/base/find_element_mixin.js"></script>
+    <script src= "build/modules/base/soft_delete_mixin.js"></script>
     <script src= "build/modules/base/on_container_resize_mixin.js"></script>
     <script src= "build/modules/base/backbone_edit_helpers.js"></script>
     <script src= "build/modules/base/converters.js"></script>
@@ -113,12 +119,9 @@
         })();
     </script>
 
+    <script src="build/spec/test_helpers/helper_forms.js"></script>
+    <script src="build/spec/slickgrid/slickgrid.spec.js"></script>
 
-
-    <script src="prices_model.js"></script>   <!-- store the prices in a backbone collection -->
-    <script src="prices_view.js"></script>    <!-- render the table as a backbone view -->
-
-    <script src="tests/tests.js"></script>
 
   </body>
 </html>

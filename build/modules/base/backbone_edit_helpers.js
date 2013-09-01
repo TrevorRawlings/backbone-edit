@@ -32,15 +32,23 @@
   };
 
   helpers.getObjectByName = function(name) {
-    var object;
+    var object, parts;
     if (_.isFunction(name) || _.isObject(name)) {
       return name;
     }
-    object = Backbone.Relational.store.getObjectByName(name);
+    parts = name.split('.');
+    object = window[parts.shift()];
+    while (obj && parts.length) {
+      object = object[parts.shift()];
+    }
     if (!object) {
       throw "failed to find object " + name;
     }
     return object;
+  };
+
+  helpers.isCollection = function(object) {
+    return (object instanceof Backbone.Collection) || (Backbone.Subset && object instanceof Backbone.Subset);
   };
 
   helpers.keyToTitle = function(str) {
@@ -156,6 +164,12 @@
     return new ConstructorFn(options);
   };
 
-  Backbone.Edit.helpers = helpers;
+  if (_.isUndefined(window.categorizr)) {
+    helpers.categorizr = {
+      isDesktop: true
+    };
+  } else {
+    helpers.categorizr = categorizr;
+  }
 
 }).call(this);

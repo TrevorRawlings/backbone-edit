@@ -69,6 +69,55 @@
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
+  Backbone.Edit.SoftDeleteMixin = (function(_super) {
+    __extends(SoftDeleteMixin, _super);
+
+    function SoftDeleteMixin() {
+      _ref = SoftDeleteMixin.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    SoftDeleteMixin.prototype.initializeSoftDelete = function() {
+      return this.on('change:deleted_at change:_destroy', this.on_checkDeleted, this);
+    };
+
+    SoftDeleteMixin.prototype.isDeleted = function() {
+      return this.has("deleted_at") || this.has("_destroy");
+    };
+
+    SoftDeleteMixin.prototype.isActive = function() {
+      return !this.isDeleted();
+    };
+
+    SoftDeleteMixin.prototype.on_checkDeleted = function() {
+      var newValue;
+      newValue = this.isDeleted();
+      if (newValue !== this.previousDeleted) {
+        this.previousDeleted = newValue;
+        return this.trigger("change:isDeleted", this, newValue, {});
+      }
+    };
+
+    SoftDeleteMixin.prototype.destroy = function(options) {
+      if (this.isNew()) {
+        return this.trigger('destroy', this, this.collection, options);
+      } else {
+        return this.set("_destroy", true, options);
+      }
+    };
+
+    return SoftDeleteMixin;
+
+  })(Backbone.Edit.Mixin);
+
+}).call(this);
+
+;;
+(function() {
+  var _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
   Backbone.Edit.OnContainerResizeMixin = (function(_super) {
     __extends(OnContainerResizeMixin, _super);
 
@@ -160,15 +209,23 @@
   };
 
   helpers.getObjectByName = function(name) {
-    var object;
+    var object, parts;
     if (_.isFunction(name) || _.isObject(name)) {
       return name;
     }
-    object = Backbone.Relational.store.getObjectByName(name);
+    parts = name.split('.');
+    object = window[parts.shift()];
+    while (obj && parts.length) {
+      object = object[parts.shift()];
+    }
     if (!object) {
       throw "failed to find object " + name;
     }
     return object;
+  };
+
+  helpers.isCollection = function(object) {
+    return (object instanceof Backbone.Collection) || (Backbone.Subset && object instanceof Backbone.Subset);
   };
 
   helpers.keyToTitle = function(str) {
@@ -284,7 +341,13 @@
     return new ConstructorFn(options);
   };
 
-  Backbone.Edit.helpers = helpers;
+  if (_.isUndefined(window.categorizr)) {
+    helpers.categorizr = {
+      isDesktop: true
+    };
+  } else {
+    helpers.categorizr = categorizr;
+  }
 
 }).call(this);
 
@@ -635,7 +698,7 @@
     if (modelFormater == null) {
       modelFormater = formatters.modelFormater;
     }
-    if (value instanceof Backbone.Collection || value instanceof Landscape.Subset) {
+    if (Backbone.Edit.helpers.isCollection(value)) {
       return formatters.arrayFormater(value.models, modelFormater, options);
     } else if (_.isNull(value) || _.isUndefined(value)) {
       return "";
@@ -784,8 +847,10 @@
         value = this.loadNestedAttribute(col, data);
       } else if (col.schema && col.schema.custom_get) {
         value = data.get(col.field);
-      } else {
+      } else if (data.getRelated) {
         value = data.getRelated(col.field, this.get_related_options);
+      } else {
+        value = data.get(col.field);
       }
       return Backbone.Edit.formatters.modelFormater(value, this.lazy_load_options);
     };
@@ -813,7 +878,11 @@
         if (i === last_i) {
           return model.get(attr);
         } else {
-          model = model.getRelated(attr, this.get_related_options);
+          if (model.getRelated) {
+            model = model.getRelated(attr, this.get_related_options);
+          } else {
+            model = model.get(attr);
+          }
           if (model === null) {
             return null;
           }

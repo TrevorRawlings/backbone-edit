@@ -5,6 +5,7 @@
 #
 
 Backbone.Edit = {} if !Backbone.Edit
+helpers = Backbone.Edit.helpers
 
 # ==================================================================================================
 # FORM

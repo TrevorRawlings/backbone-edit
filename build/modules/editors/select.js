@@ -283,7 +283,7 @@
       if (this.allow_deselect()) {
         this.createOption(this.$el, null);
       }
-      if ((groups instanceof Backbone.Collection) || (groups instanceof Landscape.Subset)) {
+      if (Backbone.Edit.helpers.isCollection(groups)) {
         bindTo = groups;
         groups = (function() {
           var _i, _len, _ref3, _results;
@@ -307,14 +307,14 @@
           });
           if (_.isArray(groupChildren)) {
             this._arrayToHtml(optgroup, groupChildren);
-          } else if ((groupChildren instanceof Backbone.Collection) || (groupChildren instanceof Landscape.Subset)) {
+          } else if (Backbone.Edit.helpers.isCollection(groupChildren)) {
             this._collectionToHtml(optgroup, groupChildren);
           } else {
             throw new Error("expected an array or collection");
           }
           this.$el.append(optgroup);
         }
-        if ((groupChildren instanceof Backbone.Collection) || (groupChildren instanceof Landscape.Subset)) {
+        if (Backbone.Edit.helpers.isCollection(groupChildren)) {
           this.bindToCollection(groupChildren);
         }
       }

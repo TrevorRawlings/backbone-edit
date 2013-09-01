@@ -84,8 +84,13 @@ class Backbone.Slickgrid.FormatterBase
       value =  @loadNestedAttribute(col, data)
     else if col.schema and col.schema.custom_get
       value = data.get(col.field)
-    else
+
+    # if the model supports lazy loading of related models then call getRelated ...otherwise fallback to standard 'get' calls
+    else if data.getRelated
       value = data.getRelated(col.field, @get_related_options)
+    else
+      value = data.get(col.field)
+
     Backbone.Edit.formatters.modelFormater( value, @lazy_load_options )
 
 
@@ -113,7 +118,11 @@ class Backbone.Slickgrid.FormatterBase
       if i == last_i
         return model.get(attr)
       else
-        # this should be a model
-        model = model.getRelated(attr, @get_related_options)
+        # This should be a model. If the model supports lazy loading of related models then call getRelated
+        # ...otherwise fallback to standard 'get' calls
+        if model.getRelated
+          model = model.getRelated(attr, @get_related_options)
+        else
+          model = model.get(attr)
         return null if model == null # relation isn't yet loaded
 

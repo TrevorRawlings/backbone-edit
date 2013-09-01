@@ -20,7 +20,7 @@ class editors.Select2Base extends editors.OptionSelect
   javascriptEditor: ->
     # On mobile devices the chosen dropdown doesn't really work - and most mobile browsers
     # have touch optimised interfaces for selecting from a dropdown
-    return false if !categorizr.isDesktop
+    return false if !Backbone.Edit.categorizr.isDesktop
 
     # In a modal the chosen dropdown effects the sizing of the modal and it all looks a bit average
     return false if @isInModal()

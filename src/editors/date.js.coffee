@@ -14,7 +14,7 @@ class editors.DateTypeBase extends editors.Base
 
   pickerType: ->
     #return "mobiscroll"
-    return if categorizr.isDesktop then "jquery" else "mobiscroll"
+    return if Backbone.Edit.categorizr.isDesktop then "jquery" else "mobiscroll"
 
   render: ->
     editor = this
@@ -30,7 +30,7 @@ class editors.DateTypeBase extends editors.Base
 
       @$el.datepicker({ dateFormat: 'dd/mm/yy', showButtonPanel: true, beforeShow: beforeShow, onClose: onClose })
     else
-      @$el.mobiscroll().date({ dateFormat: 'dd/mm/yyyy', dateOrder: 'D dMyy', maxDate: Landscape.Helpers.DateUtils.dateAdd( new Date(), 'Y', 10) });
+      @$el.mobiscroll().date({ dateFormat: 'dd/mm/yyyy', dateOrder: 'D dMyy', maxDate: moment().add('years', 10) });
 
     @setValue(this.value)
     return this

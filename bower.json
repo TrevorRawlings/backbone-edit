@@ -16,8 +16,9 @@
     "html5-boilerplate": "~4.2.0",
     "slickgrid": "~2.0.2",
     "jquery": ">= 1.7.1",
-    "jquery-ui":  "~1.8.16",
-    "mobiscroll": "~2.3.1"
+    "jquery-ui": "~1.8.16",
+    "mobiscroll": "~2.3.1",
+    "numeral": "~1.4.5"
   },
   "devDependencies": {
     "jasmine": "1.3.1",

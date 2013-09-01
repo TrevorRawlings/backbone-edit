@@ -47,6 +47,14 @@ module.exports = function(grunt) {
                                 }
     }
 
+    // https://github.com/gruntjs/grunt-contrib-coffee/pull/1
+    config.coffee.spec = { files: grunt.file.expandMapping(['spec/**/*.coffee'],
+                                                            'build/', {
+                                                             rename: function(destBase,destPath) {
+                                                                        return destBase+destPath.replace(/\.coffee$/,"");
+                                                                     }
+                                                            })
+                          }
 
     // assemble modules
     config.lumbar = {

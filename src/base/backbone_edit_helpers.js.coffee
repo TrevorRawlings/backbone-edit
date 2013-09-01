@@ -27,37 +27,53 @@ helpers.dom = {} if !helpers.dom
 
 helpers.dom.element_equal_or_contains = (element, target) ->
   throw "arg should be a dom element" if !_.isElement(element) or !_.isElement(target)
-
   return element == target or $.contains(element, target)
 
 
+# getObjectByName
+# ---------------
+# Find a model type on one of the modelScopes by name. Names are split on dots.
+# A replacement for the method in backbone-relational
+#
+# @param {String} name
+# @return {Object}
+#
 helpers.getObjectByName = (name) ->
   return name if _.isFunction(name) or _.isObject(name)
-  object = Backbone.Relational.store.getObjectByName(name)
+
+  parts = name.split( '.' )
+  object = window[parts.shift()];
+  while obj and parts.length
+    object = object[parts.shift()]
+
   throw "failed to find object #{name}" if !object
   return object
 
 
-# **
-# * This function is used to transform the key from a schema into the title used in a label.
-# * (If a specific title is provided it will be used instead).
-# *
-# * @param {String}  Key
-# * @return {String} Title
-# */
+helpers.isCollection = (object) ->
+  return (object instanceof Backbone.Collection) or (Backbone.Subset and object instanceof Backbone.Subset)
+
+#
+# This function is used to transform the key from a schema into the title used in a label.
+# (If a specific title is provided it will be used instead).
+#
+# @param {String}  Key
+# @return {String} Title
+#
 helpers.keyToTitle = (str) ->
   str = _.string.humanize(str);
   str = _.string.titleize(str);
   return str;
 
 
-# **
-# * Helper to create a template with the {{mustache}} style tags. Template settings are reset
-# * to user's settings when done to avoid conflicts.
-# * @param {String}      Template string
-# * @param {Object}      Optional; values to replace in template
-# * @return {Template}   Compiled template
-# *
+#
+# Helper to create a template with the {{mustache}} style tags. Template settings are reset
+# to user's settings when done to avoid conflicts.
+#
+# @param {String}      Template string
+# @param {Object}      Optional; values to replace in template
+# @return {Template}   Compiled template
+#
 helpers.createTemplate = (str, context) ->
 
   # Store user's template options
@@ -78,18 +94,18 @@ helpers.createTemplate = (str, context) ->
     return template(context)
 
 
-# **
-# * Sets the templates to be used.
-# *
-# * If the templates passed in are strings, they will be compiled, expecting Mustache style tags,
-# * i.e. <div>{{varName}}</div>
-# *
-# * You can also pass in previously compiled Underscore templates, in which case you can use any style
-# * tags.
-# *
-# * @param {Object} templates
-# * @param {Object} classNames
-# *
+#
+# Sets the templates to be used.
+#
+# If the templates passed in are strings, they will be compiled, expecting Mustache style tags,
+# i.e. <div>{{varName}}</div>
+#
+# You can also pass in previously compiled Underscore templates, in which case you can use any style
+# tags.
+#
+# @param {Object} templates
+# @param {Object} classNames
+#
 helpers.setTemplates = (templates, classNames) ->
   createTemplate = helpers.createTemplate;
 
@@ -160,15 +176,15 @@ helpers.mergeSchema = (base, extend...) ->
 
 
 
-# **
-# * Return the editor constructor for a given schema 'type'.
-# * Accepts strings for the default editors, or the reference to the constructor function
-# * for custom editors
-# *
-# * @param {String|Function} The schema type e.g. 'Text', 'Select', or the editor constructor e.g. editors.Date
-# * @param {Object}          Options to pass to editor, including required 'key', 'schema'
-# * @return {Mixed}          An instance of the mapped editor
-# */
+#
+# Return the editor constructor for a given schema 'type'.
+# Accepts strings for the default editors, or the reference to the constructor function
+# for custom editors
+#
+# @param {String|Function} The schema type e.g. 'Text', 'Select', or the editor constructor e.g. editors.Date
+# @param {Object}          Options to pass to editor, including required 'key', 'schema'
+# @return {Mixed}          An instance of the mapped editor
+#
 helpers.createEditor = (schemaType, options) ->
 
   if (_.isString(schemaType))
@@ -182,6 +198,15 @@ helpers.createEditor = (schemaType, options) ->
   return new ConstructorFn(options)
 
 
-Backbone.Edit.helpers = helpers
+# ==================================================================================================
+# categorizr: https://github.com/Skookum/categorizr.js
+# ==================================================================================================
+
+if _.isUndefined(window.categorizr)
+  helpers.categorizr = { isDesktop: true }
+else
+  helpers.categorizr = categorizr
+
+
 
 

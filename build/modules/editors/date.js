@@ -29,7 +29,7 @@
     };
 
     DateTypeBase.prototype.pickerType = function() {
-      if (categorizr.isDesktop) {
+      if (Backbone.Edit.categorizr.isDesktop) {
         return "jquery";
       } else {
         return "mobiscroll";
@@ -64,7 +64,7 @@
         this.$el.mobiscroll().date({
           dateFormat: 'dd/mm/yyyy',
           dateOrder: 'D dMyy',
-          maxDate: Landscape.Helpers.DateUtils.dateAdd(new Date(), 'Y', 10)
+          maxDate: moment().add('years', 10)
         });
       }
       this.setValue(this.value);

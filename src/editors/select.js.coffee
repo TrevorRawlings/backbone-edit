@@ -283,7 +283,7 @@ class editors.GroupedSelect extends editors.Select
     if @allow_deselect()
       @createOption(this.$el, null) # Adds '<option value=""></option>'
 
-    if (groups instanceof Backbone.Collection) or ( groups instanceof Landscape.Subset)
+    if Backbone.Edit.helpers.isCollection(groups)
       bindTo = groups
       groups = (group for group in groups.models when !group.isNew())
 
@@ -295,13 +295,13 @@ class editors.GroupedSelect extends editors.Select
 
         if _.isArray(groupChildren)
           @_arrayToHtml(optgroup, groupChildren)
-        else if (groupChildren instanceof Backbone.Collection) or ( groupChildren instanceof Landscape.Subset)
+        else if Backbone.Edit.helpers.isCollection(groupChildren)
           @_collectionToHtml(optgroup, groupChildren)
         else
           throw new Error("expected an array or collection")
         this.$el.append(optgroup)
 
-      if (groupChildren instanceof Backbone.Collection) or ( groupChildren instanceof Landscape.Subset)
+      if Backbone.Edit.helpers.isCollection(groupChildren)
         @bindToCollection(groupChildren)
 
     @renderOptions_append_CreateNewOption() if @options.allowNewValues

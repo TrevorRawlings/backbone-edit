@@ -110,7 +110,7 @@ formatters.modelFormater = ( value, options ) ->
     return "?"
 
 formatters.collectionFormater = ( value, modelFormater = formatters.modelFormater, options ) ->
-  if value instanceof Backbone.Collection or value instanceof Landscape.Subset
+  if Backbone.Edit.helpers.isCollection(value)
     # Call modelFormater() for the first 10 models in the collection
     # Limiting to the first first 10 models in case its a massive collection with 100's of items
     return formatters.arrayFormater( value.models, modelFormater, options)

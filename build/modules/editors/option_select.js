@@ -63,7 +63,7 @@
       if (this.select_options !== options) {
         this.check_options_valid(options);
         this.select_options = options;
-        if ((options instanceof Backbone.Collection) || (options instanceof Landscape.Subset)) {
+        if (Backbone.Edit.helpers.isCollection(options)) {
           this.unbindFromCollection();
           this.bindToCollection(options);
         }
@@ -74,7 +74,7 @@
     };
 
     OptionSelect.prototype.check_options_valid = function(options) {
-      if (!_.isArray(options) && !(options instanceof Backbone.Collection) && !(options instanceof Landscape.Subset)) {
+      if (!_.isArray(options) && !Backbone.Edit.helpers.isCollection(options)) {
         throw new Error("expected string, array or collection");
       }
     };
@@ -127,7 +127,7 @@
       }
       if (_.isArray(options)) {
         this._arrayToHtml(this.$el, options);
-      } else if ((options instanceof Backbone.Collection) || (options instanceof Landscape.Subset)) {
+      } else if (Backbone.Edit.helpers.isCollection(options)) {
         this._collectionToHtml(this.$el, options);
       } else {
         throw new Error("renderOptions: expected an array or collection: " + options);
