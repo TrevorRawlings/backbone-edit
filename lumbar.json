@@ -28,6 +28,7 @@
                 "build/modules/base/find_element_mixin.js",
                 "build/modules/base/soft_delete_mixin.js",
                 "build/modules/base/on_container_resize_mixin.js",
+                "build/modules/base/view.js",
                 "build/modules/base/backbone_edit_helpers.js",
                 "build/modules/base/converters.js",
                 "build/modules/base/formatters.js"

@@ -1,5 +1,7 @@
 #= require ./backbone-edit/base/find_element_mixin.js.coffee
+#= require ./backbone-edit/base/soft_delete_mixin.js.coffee
 #= require ./backbone-edit/base/on_container_resize_mixin.js.coffee
+#= require ./backbone-edit/base/view.js.coffee
 #= require ./backbone-edit/base/backbone_edit_helpers.js.coffee
 #= require ./backbone-edit/base/converters.js.coffee
 #= require ./backbone-edit/base/formatters.js.coffee

@@ -19,6 +19,7 @@
 
     OptionSelect.prototype.initialize = function(options) {
       OptionSelect.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_CollectionChanged');
       return this.evaluateSchemaOptions();
     };
 
@@ -139,35 +140,34 @@
       return !Backbone.Validators.hasValidator(this.schema, "required");
     };
 
-    OptionSelect.prototype.bindToCollection = function(collection, eventName, callback, context) {
-      var binding;
+    OptionSelect.prototype.bindToCollection = function(collection, eventName, callback) {
       if (eventName == null) {
         eventName = "add remove reset change";
       }
       if (callback == null) {
         callback = this.on_CollectionChanged;
       }
-      if (context == null) {
-        context = this;
-      }
       if (!this.collectionBindings) {
         this.collectionBindings = [];
       }
-      binding = this.bindTo(collection, eventName, callback, context);
-      this.collectionBindings.push(binding);
-      return binding;
+      this.listenTo(collection, eventName, callback, context);
+      this.collectionBindings.push({
+        obj: this.collection,
+        eventName: eventName,
+        callback: callback
+      });
+      return true;
     };
 
     OptionSelect.prototype.unbindFromCollection = function() {
-      var binding, _i, _len, _ref1, _results;
+      var binding, _i, _len, _ref1;
       if (this.collectionBindings) {
         _ref1 = this.collectionBindings;
-        _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           binding = _ref1[_i];
-          _results.push(this.unbindFrom(binding));
+          this.stopListening(binding.obj, binding.event, binding.callback);
         }
-        return _results;
+        return this.collectionBindings = [];
       }
     };
 

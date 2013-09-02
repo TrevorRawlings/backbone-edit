@@ -33,7 +33,7 @@ if !Backbone.Slickgrid.formatter
 #
 # - Caching of row metadata
 #
-class Backbone.Slickgrid.View extends Backbone.Marionette.View
+class Backbone.Slickgrid.View extends Backbone.Edit.View
   className: "slickgrid"
   enableItemClick: false
   enableCellClick: false
@@ -42,7 +42,7 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.View
     'resize' : 'on_resize'
 
   initialize: (options = {}) ->
-    _.bindAll(@, "on_ContextMenu", 'on_item_click') #, "closeContextMenu"
+    _.bindAll(@, "on_ContextMenu", 'on_item_click', 'on_Related_ModelChanged', 'on_CollectionChanged', 'on_ModelChanged') #, "closeContextMenu"
     @formatter = new Backbone.Slickgrid.formatter(this)
     @allColumns = @getColumns()
     @autoHeight = @_autoHeight(@getLength())
@@ -152,24 +152,24 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.View
   bindToModel: (model, attribute) ->
     @modelBindings = {} if !@modelBindings
 
-    # Marionette.BindTo automatically stores bindings and releases them when the view closes,
+    # Backbone.listenTo automatically stores bindings and Marrionette releases them when the view closes,
     # but we also store them here so that we can release them if the collection changes
     if !model_details = @modelBindings[model.cid]
-      model_details = { bindings: [] }
+      model_details = { obj: model, bindings: [] }
       @modelBindings[model.cid] = model_details
 
     eventName = "change:#{attribute}"
     for binding in model_details.bindings when binding.eventName == eventName
       return true
 
-    binding = @bindTo(model, eventName, @on_Related_ModelChanged, this)
-    model_details.bindings.push(binding)
+    @listenTo(model, eventName, @on_Related_ModelChanged)
+    model_details.bindings.push({ eventName: eventName })
     return true
 
   unbindFromModels: ->
     if @modelBindings
       for cid, item of @modelBindings
-        @unbindFrom(b) for b in item.bindings
+        @stopListening(item.obj, b.eventName, @on_Related_ModelChanged) for b in item.bindings
       @modelBindings = {}
     return true
 
@@ -179,18 +179,18 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.View
   #
 
   # stores collection bindings so that they can be released if the collection changes
-  bindToCollection: (eventName, callback, context) ->
+  bindToCollection: (eventName, callback) ->
     @collectionBindings = [] if !@collectionBindings
 
-    # Marionette.BindTo automatically stores bindings and releases them when the view closes,
+    # Backbone.listenTo automatically stores bindings and Marrionette releases them when the view closes,
     # but we also store them here so that we can release them if the collection changes
-    binding = @bindTo(@collection, eventName, callback, context)
-    @collectionBindings.push( binding )
-    return binding
+    @listenTo(@collection, eventName, callback)
+    @collectionBindings.push({ obj: @collection,  eventName: eventName,  callback: callback })
+    return true
 
 
   setupCollectionBindings:  ->
-    @bindToCollection("add remove reset", @on_CollectionChanged, @);
+    @bindToCollection("add remove reset", @on_CollectionChanged);
 
     changes = []
     for column in @getVisibleColumns() when column.isSpecialColumn != true
@@ -200,12 +200,13 @@ class Backbone.Slickgrid.View extends Backbone.Marionette.View
         changes.push("change:#{column.id}")
 
     if changes.length > 0
-      @bindToCollection(changes.join(" "), @on_ModelChanged, @);
+      @bindToCollection(changes.join(" "), @on_ModelChanged);
 
 
   unbindFromCollection: ->
     if @collectionBindings
-      @unbindFrom(binding) for binding in @collectionBindings
+      @stopListening(binding.obj, binding.event, binding.callback) for binding in @collectionBindings
+      @collectionBindings = []
 
   updateCollectionBindings: ->
     @unbindFromCollection()

@@ -10,11 +10,13 @@ editors = Backbone.Edit.editors
 # *         value   {String} : When not using a model. If neither provided, defaultValue will be used.
 # *         schema  {Object} : May be required by some editors
 # */
-class editors.Base extends Backbone.Marionette.View
+class editors.Base extends Backbone.Edit.View
 
   defaultValue: null
 
   initialize: (options = {}) ->
+    super
+    _.bindAll(@, 'on_default_value_changed')
 
     if (options.model)
       throw new Error("Missing option: 'key'") if (!options.key)
@@ -48,7 +50,7 @@ class editors.Base extends Backbone.Marionette.View
       @$el.attr("placeholder", @schema.placeholder)
     else if @schema.placeholder == Backbone.Edit.enum.DefaultValue
       @$el.attr("placeholder", "#{@getDefaultValue()}")
-      @bindTo(@model, "change:default:#{@key}", @on_default_value_changed)
+      @listenTo(@model, "change:default:#{@key}", @on_default_value_changed)
 
 
   on_default_value_changed: ->

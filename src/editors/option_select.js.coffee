@@ -19,6 +19,7 @@ class editors.OptionSelect extends editors.Base
 
   initialize: (options) ->
     super
+    _.bindAll(@, 'on_CollectionChanged')
     @evaluateSchemaOptions()
 
   # ----------------------------------------
@@ -150,18 +151,19 @@ class editors.OptionSelect extends editors.Base
   #
   # stores collection bindings so that they can be released if the collection changes
   #
-  # Marionette.BindTo automatically stores binding and releases them when the view closes,
+  # Backbone.listenTo automatically stores bindings and Marrionette releases them when the view closes,
   # but we also store them here so that we can release them if the collection changes
-  bindToCollection: (collection, eventName = "add remove reset change", callback = @on_CollectionChanged, context = @) ->
+  bindToCollection: (collection, eventName = "add remove reset change", callback = @on_CollectionChanged) ->
     @collectionBindings = [] if !@collectionBindings
 
-    binding = @bindTo(collection, eventName, callback, context)
-    @collectionBindings.push( binding )
-    return binding
+    @listenTo(collection, eventName, callback, context)
+    @collectionBindings.push( { obj: @collection,  eventName: eventName,  callback: callback } )
+    return true
 
   unbindFromCollection: ->
     if @collectionBindings
-      @unbindFrom(binding) for binding in @collectionBindings
+      @stopListening(binding.obj, binding.event, binding.callback) for binding in @collectionBindings
+      @collectionBindings = []
 
   on_CollectionChanged: ->
     if @_optionSelect_rendered

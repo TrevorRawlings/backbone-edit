@@ -27,6 +27,7 @@ class editors.Select extends editors.Select2Base
 
   initialize: (options) ->
     super
+    _.bindAll(@, 'on_modelCreated', 'on_viewClosed' )
     @initialize_addNew()
 
 
@@ -62,8 +63,12 @@ class editors.Select extends editors.Select2Base
 
   unbindFromNewModel: ->
     @newModelBindings = [] if !@newModelBindings
-    @unbindFrom(binding) for binding in @newModelBindings
+    @stopListening(binding.obj, binding.eventName, binding.callback) for binding in @newModelBindings
 
+  # add_new_selected
+  # ----------------
+  #
+  # Called when user selects 'add new' from the drop down menu.
   add_new_selected: (selected_value) ->
     @unbindFromNewModel()
 
@@ -73,9 +78,13 @@ class editors.Select extends editors.Select2Base
     model = @buildNewModel(selected_value, term)
     view = @buildNewModelView(selected_value, model )
 
-    @newModelBindings.push( @bindTo(view, "save:success", @on_modelCreated) )
-    @newModelBindings.push( @bindTo(view, "close",        @on_viewClosed) )
-    Landscape.App.showModal(view)
+    @listenTo(view, "save:success", @on_modelCreated)
+    @listenTo(view, "close",        @on_viewClosed)
+
+    @newModelBindings.push({ obj: view, eventName: "save:success", callback: @on_modelCreated })
+    @newModelBindings.push({ obj: view, eventName: "close",        callback: @on_viewClosed   })
+
+    Backbone.Edit.helpers.showModal(view)
 
   buildNewModel: (selected_value, term) ->
     model = new @options.model_class(business: window.Landscape.Data.Business, name: term)

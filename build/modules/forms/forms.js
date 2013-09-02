@@ -267,7 +267,7 @@
 
     return Form;
 
-  })(Backbone.Marionette.ItemView);
+  })(Backbone.Edit.View);
 
   Backbone.Edit.Field = (function(_super) {
     __extends(Field, _super);
@@ -286,6 +286,7 @@
       this.form = options.form;
       this.model = options.model;
       this.editors = [];
+      _.bindAll(this, 'on_serverSideValidation', 'on_clientSideValidation', 'on_modelChanged', 'on_canEditChanged');
       if (options.key || options.errors_key || options.value || options.schema) {
         if (options.editors) {
           throw "argument error";
@@ -312,10 +313,10 @@
         helpers.setSchemaDefaults(editor.schema, editor.key);
       }
       if (this.model) {
-        this.bindTo(this.model, "serverErrorsChanged", this.on_serverSideValidation);
-        this.bindTo(this.model, "clientErrorsChanged", this.on_clientSideValidation);
-        this.bindTo(this.model, change_keys.join(" "), this.on_modelChanged);
-        return this.bindTo(this.model, "change:canEdit", this.on_canEditChanged);
+        this.listenTo(this.model, "serverErrorsChanged", this.on_serverSideValidation);
+        this.listenTo(this.model, "clientErrorsChanged", this.on_clientSideValidation);
+        this.listenTo(this.model, change_keys.join(" "), this.on_modelChanged);
+        return this.listenTo(this.model, "change:canEdit", this.on_canEditChanged);
       }
     };
 
@@ -467,7 +468,7 @@
     };
 
     Field.prototype.on_editorChanged = function(editor) {
-      if (!(editor instanceof Backbone.Marionette.View)) {
+      if (!(editor instanceof Backbone.Edit.View)) {
         throw "expected an editor";
       }
       this.logValue();
@@ -506,7 +507,7 @@
     };
 
     Field.prototype.commit = function(editor) {
-      if (!(editor instanceof Backbone.Marionette.View)) {
+      if (!(editor instanceof Backbone.Edit.View)) {
         throw "expected an editor";
       }
       return editor.commit();
@@ -722,7 +723,7 @@
 
     return Field;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
   Backbone.Edit.editors = {};
 

@@ -20,6 +20,8 @@
       if (options == null) {
         options = {};
       }
+      Base.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_default_value_changed');
       if (options.model) {
         if (!options.key) {
           throw new Error("Missing option: 'key'");
@@ -54,7 +56,7 @@
         return this.$el.attr("placeholder", this.schema.placeholder);
       } else if (this.schema.placeholder === Backbone.Edit["enum"].DefaultValue) {
         this.$el.attr("placeholder", "" + (this.getDefaultValue()));
-        return this.bindTo(this.model, "change:default:" + this.key, this.on_default_value_changed);
+        return this.listenTo(this.model, "change:default:" + this.key, this.on_default_value_changed);
       }
     };
 
@@ -120,7 +122,7 @@
 
     return Base;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
   editors.Hidden = (function(_super) {
     __extends(Hidden, _super);

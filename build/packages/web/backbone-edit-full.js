@@ -176,6 +176,105 @@
 
 ;;
 (function() {
+  var hasMarionette, viewBase, _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  if (_.isUndefined(Backbone.Marionette)) {
+    hasMarionette = true;
+    viewBase = Backbone.Marionette.View;
+  } else {
+    hasMarionette = false;
+    viewBase = Backbone.View;
+  }
+
+  Backbone.Edit.View = (function(_super) {
+    __extends(View, _super);
+
+    function View() {
+      _ref = View.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    View.prototype.onShow = function(wasAlreadyActive) {
+      this._onShow_base_called = true;
+      return this.trigger('view:onShow', wasAlreadyActive);
+    };
+
+    View.prototype.onDeactivate = function() {
+      this._onDeactivate_base_called = true;
+      return this.trigger('deactivate', this);
+    };
+
+    View.prototype.beforeClose = function() {};
+
+    View.prototype.onClose = function() {
+      return this._onClose_base_called = true;
+    };
+
+    View.prototype.show = function() {
+      var wasAlreadyActive;
+      if (hasMarionette) {
+        this.isActive = false;
+        return View.__super__.show.apply(this, arguments);
+      } else {
+        wasAlreadyActive = this.isActive;
+        this.isActive = true;
+        this._onShow_base_called = false;
+        this.onShow(wasAlreadyActive);
+        if (!this._onShow_base_called) {
+          throw "onShow call chain is broken";
+        }
+        if (this.deactivated) {
+          this.delegateEvents();
+          return this.deactivated = false;
+        }
+      }
+    };
+
+    View.prototype.deactivate = function() {
+      this.isActive = false;
+      this._onDeactivate_base_called = false;
+      this.onDeactivate();
+      if (!this._onDeactivate_base_called) {
+        throw "onDeactivate call chain is broken";
+      }
+      return this.deactivated = true;
+    };
+
+    View.prototype.close = function() {
+      if (this.isActive) {
+        this.deactivate();
+      }
+      if (hasMarionette) {
+        View.__super__.close.apply(this, arguments);
+        this.stopListening();
+        return this.off();
+      } else {
+        this.trigger('before:close');
+        if (this.beforeClose) {
+          this.beforeClose();
+        }
+        this.remove();
+        this.stopListening();
+        this._onClose_base_called = false;
+        this.onClose();
+        if (!this._onClose_base_called) {
+          throw "onClose call chain is broken";
+        }
+        this.trigger('close', this);
+        return this.off();
+      }
+    };
+
+    return View;
+
+  })(viewBase);
+
+}).call(this);
+
+;;
+(function() {
   var helpers,
     __slice = [].slice;
 
@@ -786,7 +885,7 @@
         view: this.view,
         callback: this.view.on_row_data_loaded
       };
-      if (!(this.view instanceof Backbone.Marionette.View)) {
+      if (!(this.view instanceof Backbone.Edit.View)) {
         throw "expected a Backbone.Slickgrid.View";
       }
       _.bindAll(this, "decimalFormater", "defaultFormater", "dateFormater", "currencyFormatter", "dateTimeFormater", "modelFormater", "collectionFormater", "arrayFormater");
@@ -1424,7 +1523,7 @@
       if (options == null) {
         options = {};
       }
-      _.bindAll(this, "on_ContextMenu", 'on_item_click');
+      _.bindAll(this, "on_ContextMenu", 'on_item_click', 'on_Related_ModelChanged', 'on_CollectionChanged', 'on_ModelChanged');
       this.formatter = new Backbone.Slickgrid.formatter(this);
       this.allColumns = this.getColumns();
       this.autoHeight = this._autoHeight(this.getLength());
@@ -1572,6 +1671,7 @@
       }
       if (!(model_details = this.modelBindings[model.cid])) {
         model_details = {
+          obj: model,
           bindings: []
         };
         this.modelBindings[model.cid] = model_details;
@@ -1584,8 +1684,10 @@
           return true;
         }
       }
-      binding = this.bindTo(model, eventName, this.on_Related_ModelChanged, this);
-      model_details.bindings.push(binding);
+      this.listenTo(model, eventName, this.on_Related_ModelChanged);
+      model_details.bindings.push({
+        eventName: eventName
+      });
       return true;
     };
 
@@ -1598,7 +1700,7 @@
           _ref2 = item.bindings;
           for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
             b = _ref2[_i];
-            this.unbindFrom(b);
+            this.stopListening(item.obj, b.eventName, this.on_Related_ModelChanged);
           }
         }
         this.modelBindings = {};
@@ -1606,19 +1708,22 @@
       return true;
     };
 
-    View.prototype.bindToCollection = function(eventName, callback, context) {
-      var binding;
+    View.prototype.bindToCollection = function(eventName, callback) {
       if (!this.collectionBindings) {
         this.collectionBindings = [];
       }
-      binding = this.bindTo(this.collection, eventName, callback, context);
-      this.collectionBindings.push(binding);
-      return binding;
+      this.listenTo(this.collection, eventName, callback);
+      this.collectionBindings.push({
+        obj: this.collection,
+        eventName: eventName,
+        callback: callback
+      });
+      return true;
     };
 
     View.prototype.setupCollectionBindings = function() {
       var changes, column, _i, _len, _ref1;
-      this.bindToCollection("add remove reset", this.on_CollectionChanged, this);
+      this.bindToCollection("add remove reset", this.on_CollectionChanged);
       changes = [];
       _ref1 = this.getVisibleColumns();
       for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
@@ -1632,20 +1737,19 @@
         }
       }
       if (changes.length > 0) {
-        return this.bindToCollection(changes.join(" "), this.on_ModelChanged, this);
+        return this.bindToCollection(changes.join(" "), this.on_ModelChanged);
       }
     };
 
     View.prototype.unbindFromCollection = function() {
-      var binding, _i, _len, _ref1, _results;
+      var binding, _i, _len, _ref1;
       if (this.collectionBindings) {
         _ref1 = this.collectionBindings;
-        _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           binding = _ref1[_i];
-          _results.push(this.unbindFrom(binding));
+          this.stopListening(binding.obj, binding.event, binding.callback);
         }
-        return _results;
+        return this.collectionBindings = [];
       }
     };
 
@@ -2073,7 +2177,7 @@
 
     return View;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
 }).call(this);
 
@@ -2347,7 +2451,7 @@
 
     return Form;
 
-  })(Backbone.Marionette.ItemView);
+  })(Backbone.Edit.View);
 
   Backbone.Edit.Field = (function(_super) {
     __extends(Field, _super);
@@ -2366,6 +2470,7 @@
       this.form = options.form;
       this.model = options.model;
       this.editors = [];
+      _.bindAll(this, 'on_serverSideValidation', 'on_clientSideValidation', 'on_modelChanged', 'on_canEditChanged');
       if (options.key || options.errors_key || options.value || options.schema) {
         if (options.editors) {
           throw "argument error";
@@ -2392,10 +2497,10 @@
         helpers.setSchemaDefaults(editor.schema, editor.key);
       }
       if (this.model) {
-        this.bindTo(this.model, "serverErrorsChanged", this.on_serverSideValidation);
-        this.bindTo(this.model, "clientErrorsChanged", this.on_clientSideValidation);
-        this.bindTo(this.model, change_keys.join(" "), this.on_modelChanged);
-        return this.bindTo(this.model, "change:canEdit", this.on_canEditChanged);
+        this.listenTo(this.model, "serverErrorsChanged", this.on_serverSideValidation);
+        this.listenTo(this.model, "clientErrorsChanged", this.on_clientSideValidation);
+        this.listenTo(this.model, change_keys.join(" "), this.on_modelChanged);
+        return this.listenTo(this.model, "change:canEdit", this.on_canEditChanged);
       }
     };
 
@@ -2547,7 +2652,7 @@
     };
 
     Field.prototype.on_editorChanged = function(editor) {
-      if (!(editor instanceof Backbone.Marionette.View)) {
+      if (!(editor instanceof Backbone.Edit.View)) {
         throw "expected an editor";
       }
       this.logValue();
@@ -2586,7 +2691,7 @@
     };
 
     Field.prototype.commit = function(editor) {
-      if (!(editor instanceof Backbone.Marionette.View)) {
+      if (!(editor instanceof Backbone.Edit.View)) {
         throw "expected an editor";
       }
       return editor.commit();
@@ -2802,7 +2907,7 @@
 
     return Field;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
   Backbone.Edit.editors = {};
 
@@ -2849,6 +2954,8 @@
       if (options == null) {
         options = {};
       }
+      Base.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_default_value_changed');
       if (options.model) {
         if (!options.key) {
           throw new Error("Missing option: 'key'");
@@ -2883,7 +2990,7 @@
         return this.$el.attr("placeholder", this.schema.placeholder);
       } else if (this.schema.placeholder === Backbone.Edit["enum"].DefaultValue) {
         this.$el.attr("placeholder", "" + (this.getDefaultValue()));
-        return this.bindTo(this.model, "change:default:" + this.key, this.on_default_value_changed);
+        return this.listenTo(this.model, "change:default:" + this.key, this.on_default_value_changed);
       }
     };
 
@@ -2949,7 +3056,7 @@
 
     return Base;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
   editors.Hidden = (function(_super) {
     __extends(Hidden, _super);
@@ -3491,6 +3598,7 @@
 
     OptionSelect.prototype.initialize = function(options) {
       OptionSelect.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_CollectionChanged');
       return this.evaluateSchemaOptions();
     };
 
@@ -3611,35 +3719,34 @@
       return !Backbone.Validators.hasValidator(this.schema, "required");
     };
 
-    OptionSelect.prototype.bindToCollection = function(collection, eventName, callback, context) {
-      var binding;
+    OptionSelect.prototype.bindToCollection = function(collection, eventName, callback) {
       if (eventName == null) {
         eventName = "add remove reset change";
       }
       if (callback == null) {
         callback = this.on_CollectionChanged;
       }
-      if (context == null) {
-        context = this;
-      }
       if (!this.collectionBindings) {
         this.collectionBindings = [];
       }
-      binding = this.bindTo(collection, eventName, callback, context);
-      this.collectionBindings.push(binding);
-      return binding;
+      this.listenTo(collection, eventName, callback, context);
+      this.collectionBindings.push({
+        obj: this.collection,
+        eventName: eventName,
+        callback: callback
+      });
+      return true;
     };
 
     OptionSelect.prototype.unbindFromCollection = function() {
-      var binding, _i, _len, _ref1, _results;
+      var binding, _i, _len, _ref1;
       if (this.collectionBindings) {
         _ref1 = this.collectionBindings;
-        _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           binding = _ref1[_i];
-          _results.push(this.unbindFrom(binding));
+          this.stopListening(binding.obj, binding.event, binding.callback);
         }
-        return _results;
+        return this.collectionBindings = [];
       }
     };
 
@@ -3872,6 +3979,7 @@
 
     Select.prototype.initialize = function(options) {
       Select.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_modelCreated', 'on_viewClosed');
       return this.initialize_addNew();
     };
 
@@ -3913,7 +4021,7 @@
       _results = [];
       for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
         binding = _ref1[_i];
-        _results.push(this.unbindFrom(binding));
+        _results.push(this.stopListening(binding.obj, binding.eventName, binding.callback));
       }
       return _results;
     };
@@ -3926,9 +4034,19 @@
       }
       model = this.buildNewModel(selected_value, term);
       view = this.buildNewModelView(selected_value, model);
-      this.newModelBindings.push(this.bindTo(view, "save:success", this.on_modelCreated));
-      this.newModelBindings.push(this.bindTo(view, "close", this.on_viewClosed));
-      return Landscape.App.showModal(view);
+      this.listenTo(view, "save:success", this.on_modelCreated);
+      this.listenTo(view, "close", this.on_viewClosed);
+      this.newModelBindings.push({
+        obj: view,
+        eventName: "save:success",
+        callback: this.on_modelCreated
+      });
+      this.newModelBindings.push({
+        obj: view,
+        eventName: "close",
+        callback: this.on_viewClosed
+      });
+      return Backbone.Edit.helpers.showModal(view);
     };
 
     Select.prototype.buildNewModel = function(selected_value, term) {

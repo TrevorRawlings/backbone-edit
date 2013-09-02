@@ -203,7 +203,7 @@ class Backbone.Edit.FormMixin extends Backbone.Edit.Mixin
 
 
 
-class Backbone.Edit.Form extends Backbone.Marionette.ItemView
+class Backbone.Edit.Form extends Backbone.Edit.View
   Backbone.Edit.FormMixin.add_to(@)
 
   initialize: (options) ->
@@ -242,7 +242,7 @@ class Backbone.Edit.Form extends Backbone.Marionette.ItemView
 # FIELD
 # ==================================================================================================
 
-class Backbone.Edit.Field extends Backbone.Marionette.View
+class Backbone.Edit.Field extends Backbone.Edit.View
   Backbone.Edit.FindElementMixin.add_to(@)
   Backbone.Edit.OnContainerResizeMixin.add_to(@)
 
@@ -261,6 +261,8 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
     @form = options.form
     @model = options.model
     @editors = []
+
+    _.bindAll(@, 'on_serverSideValidation', 'on_clientSideValidation', 'on_modelChanged', 'on_canEditChanged')
 
     if  options.key or options.errors_key or options.value or options.schema
       throw "argument error" if options.editors
@@ -283,10 +285,10 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
 
 
     if (@model)
-      @bindTo(@model, "serverErrorsChanged", @on_serverSideValidation)
-      @bindTo(@model, "clientErrorsChanged", @on_clientSideValidation)
-      @bindTo(@model, change_keys.join(" "), @on_modelChanged)
-      @bindTo(@model, "change:canEdit",      @on_canEditChanged)
+      @listenTo(@model, "serverErrorsChanged", @on_serverSideValidation)
+      @listenTo(@model, "clientErrorsChanged", @on_clientSideValidation)
+      @listenTo(@model, change_keys.join(" "), @on_modelChanged)
+      @listenTo(@model, "change:canEdit",      @on_canEditChanged)
 
 
 
@@ -411,7 +413,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # * Update the model with the current value
   # */
   on_editorChanged: (editor) ->
-    throw "expected an editor" if !(editor instanceof Backbone.Marionette.View)
+    throw "expected an editor" if !(editor instanceof Backbone.Edit.View)
     @logValue()
     editor.commit()
 
@@ -452,7 +454,7 @@ class Backbone.Edit.Field extends Backbone.Marionette.View
   # * Update the model with the new value from the editor
   # *
   commit: (editor) ->
-    throw "expected an editor" if !(editor instanceof Backbone.Marionette.View)
+    throw "expected an editor" if !(editor instanceof Backbone.Edit.View)
     return editor.commit()
 
 

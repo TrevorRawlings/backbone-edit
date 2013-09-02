@@ -17,6 +17,7 @@
 
     Select.prototype.initialize = function(options) {
       Select.__super__.initialize.apply(this, arguments);
+      _.bindAll(this, 'on_modelCreated', 'on_viewClosed');
       return this.initialize_addNew();
     };
 
@@ -58,7 +59,7 @@
       _results = [];
       for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
         binding = _ref1[_i];
-        _results.push(this.unbindFrom(binding));
+        _results.push(this.stopListening(binding.obj, binding.eventName, binding.callback));
       }
       return _results;
     };
@@ -71,9 +72,19 @@
       }
       model = this.buildNewModel(selected_value, term);
       view = this.buildNewModelView(selected_value, model);
-      this.newModelBindings.push(this.bindTo(view, "save:success", this.on_modelCreated));
-      this.newModelBindings.push(this.bindTo(view, "close", this.on_viewClosed));
-      return Landscape.App.showModal(view);
+      this.listenTo(view, "save:success", this.on_modelCreated);
+      this.listenTo(view, "close", this.on_viewClosed);
+      this.newModelBindings.push({
+        obj: view,
+        eventName: "save:success",
+        callback: this.on_modelCreated
+      });
+      this.newModelBindings.push({
+        obj: view,
+        eventName: "close",
+        callback: this.on_viewClosed
+      });
+      return Backbone.Edit.helpers.showModal(view);
     };
 
     Select.prototype.buildNewModel = function(selected_value, term) {

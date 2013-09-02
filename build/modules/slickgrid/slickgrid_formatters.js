@@ -28,7 +28,7 @@
         view: this.view,
         callback: this.view.on_row_data_loaded
       };
-      if (!(this.view instanceof Backbone.Marionette.View)) {
+      if (!(this.view instanceof Backbone.Edit.View)) {
         throw "expected a Backbone.Slickgrid.View";
       }
       _.bindAll(this, "decimalFormater", "defaultFormater", "dateFormater", "currencyFormatter", "dateTimeFormater", "modelFormater", "collectionFormater", "arrayFormater");

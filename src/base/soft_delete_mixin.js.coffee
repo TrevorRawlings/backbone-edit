@@ -15,7 +15,6 @@ class Backbone.Edit.SoftDeleteMixin extends Backbone.Edit.Mixin
     newValue = @isDeleted()
     if newValue != @previousDeleted
       @previousDeleted = newValue
-      #@check_canEdit()
       @trigger("change:isDeleted", this, newValue, {})
 
   # Override for method in backbone.js

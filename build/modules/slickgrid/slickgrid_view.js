@@ -35,7 +35,7 @@
       if (options == null) {
         options = {};
       }
-      _.bindAll(this, "on_ContextMenu", 'on_item_click');
+      _.bindAll(this, "on_ContextMenu", 'on_item_click', 'on_Related_ModelChanged', 'on_CollectionChanged', 'on_ModelChanged');
       this.formatter = new Backbone.Slickgrid.formatter(this);
       this.allColumns = this.getColumns();
       this.autoHeight = this._autoHeight(this.getLength());
@@ -183,6 +183,7 @@
       }
       if (!(model_details = this.modelBindings[model.cid])) {
         model_details = {
+          obj: model,
           bindings: []
         };
         this.modelBindings[model.cid] = model_details;
@@ -195,8 +196,10 @@
           return true;
         }
       }
-      binding = this.bindTo(model, eventName, this.on_Related_ModelChanged, this);
-      model_details.bindings.push(binding);
+      this.listenTo(model, eventName, this.on_Related_ModelChanged);
+      model_details.bindings.push({
+        eventName: eventName
+      });
       return true;
     };
 
@@ -209,7 +212,7 @@
           _ref2 = item.bindings;
           for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
             b = _ref2[_i];
-            this.unbindFrom(b);
+            this.stopListening(item.obj, b.eventName, this.on_Related_ModelChanged);
           }
         }
         this.modelBindings = {};
@@ -217,19 +220,22 @@
       return true;
     };
 
-    View.prototype.bindToCollection = function(eventName, callback, context) {
-      var binding;
+    View.prototype.bindToCollection = function(eventName, callback) {
       if (!this.collectionBindings) {
         this.collectionBindings = [];
       }
-      binding = this.bindTo(this.collection, eventName, callback, context);
-      this.collectionBindings.push(binding);
-      return binding;
+      this.listenTo(this.collection, eventName, callback);
+      this.collectionBindings.push({
+        obj: this.collection,
+        eventName: eventName,
+        callback: callback
+      });
+      return true;
     };
 
     View.prototype.setupCollectionBindings = function() {
       var changes, column, _i, _len, _ref1;
-      this.bindToCollection("add remove reset", this.on_CollectionChanged, this);
+      this.bindToCollection("add remove reset", this.on_CollectionChanged);
       changes = [];
       _ref1 = this.getVisibleColumns();
       for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
@@ -243,20 +249,19 @@
         }
       }
       if (changes.length > 0) {
-        return this.bindToCollection(changes.join(" "), this.on_ModelChanged, this);
+        return this.bindToCollection(changes.join(" "), this.on_ModelChanged);
       }
     };
 
     View.prototype.unbindFromCollection = function() {
-      var binding, _i, _len, _ref1, _results;
+      var binding, _i, _len, _ref1;
       if (this.collectionBindings) {
         _ref1 = this.collectionBindings;
-        _results = [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           binding = _ref1[_i];
-          _results.push(this.unbindFrom(binding));
+          this.stopListening(binding.obj, binding.event, binding.callback);
         }
-        return _results;
+        return this.collectionBindings = [];
       }
     };
 
@@ -684,6 +689,6 @@
 
     return View;
 
-  })(Backbone.Marionette.View);
+  })(Backbone.Edit.View);
 
 }).call(this);

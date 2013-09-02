@@ -26,7 +26,7 @@ class Backbone.Slickgrid.FormatterBase
     @get_related_options = { return: "model", view: @view, callback: @view.on_row_data_loaded }
 
     # TODO: at the moment we are also using this formatter for ConsumableBatches: throw "expected a Backbone.Slickgrid.View" if !(@view instanceof Backbone.Slickgrid.View )
-    throw "expected a Backbone.Slickgrid.View" if !(@view instanceof Backbone.Marionette.View )
+    throw "expected a Backbone.Slickgrid.View" if !(@view instanceof Backbone.Edit.View )
 
     _.bindAll(@, "decimalFormater", "defaultFormater", "dateFormater", "currencyFormatter", "dateTimeFormater", "modelFormater", "collectionFormater", "arrayFormater")
 
